@@ -23,7 +23,7 @@ It's advantages are:
 * It is fully binary. Files are much smaller compared to PGN and operations on binary files are much more performant.
 * It is designed to efficiently support basic database operations (e.g. efficiently deleting or replacing a game in a large database).
 * It allows to create a very simple parser. There is no need e.g. for complex XML decoders or schemes.
-* **No move generator / chess logic us necessary!**. No PerfT tests. No endless debugging. Not trying to recreate the precies move-generator from a specific implementation. No messing around with bitboards. This is especially important for intepreted and web-languages, where implementing
+* **No move generator / chess logic is necessary!**. No PerfT tests. No endless debugging. Not trying to recreate the precies move-generator from a specific implementation. No messing around with bitboards. This is especially important for intepreted and web-languages, where implementing
   a performant move generator is no trivial task.
 * Extendibility. Database Program authors can easily add features without violating the standard, by e.g. creating/using additional indexing files or memory mapping to increase search speed for certain operations (like an opening tree etc.).
 * Similar additional info (i.e. visual board annotations, images) can be stored by adding additional program-specific files without violating this standard.

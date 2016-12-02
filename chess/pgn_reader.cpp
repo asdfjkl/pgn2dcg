@@ -63,7 +63,7 @@ const char* PgnReader::detect_encoding(const QString &filename) {
         const QString text = codec->toUnicode(first100, 100, &state);
         if (state.invalidChars > 0) {
             isUtf8 = false;
-            qDebug() << "I think this is not UTF-8";
+            //qDebug() << "I think this is not UTF-8";
             break;
         }
         i++;
@@ -89,8 +89,7 @@ QList<HeaderOffset*>* PgnReader::scan_headers(const QString &filename, const cha
     qint64 game_pos = -1;
 
     QTextStream in(&file);
-    const char* guess = this->detect_encoding(filename);
-    QTextCodec *codec = QTextCodec::codecForName(guess);
+    QTextCodec *codec = QTextCodec::codecForName(encoding);
     in.setCodec(codec);
     QString line = QString("");
     qint64 last_pos = in.pos();
@@ -129,7 +128,7 @@ QList<HeaderOffset*>* PgnReader::scan_headers(const QString &filename, const cha
                 }
 
                 QString tag = match_t.captured(1);
-                QString value = match_t.captured(2); //.toUtf8();
+                QString value = match_t.captured(2);
 
                 game_header->insert(tag,value);
 
@@ -177,6 +176,8 @@ QString* PgnReader::readFileIntoString(const QString &filename, const char* enco
         throw std::invalid_argument("could readGameIntoString w/ supplied filename");
 
     QTextStream in(&file);
+    QTextCodec *codec = QTextCodec::codecForName(encoding);
+    in.setCodec(codec);
     QString everything = in.readAll();
     QString *everything_on_heap = new QString(everything);
     return everything_on_heap;
@@ -304,8 +305,7 @@ Game* PgnReader::readGameFromFile(const QString &filename, const char* encoding,
         throw std::invalid_argument("unable to open file w/ supplied filename");
     }
     QTextStream in(&file);
-    const char* guess = this->detect_encoding(filename);
-    QTextCodec *codec = QTextCodec::codecForName(guess);
+    QTextCodec *codec = QTextCodec::codecForName(encoding);
     in.setCodec(codec);
     if(offset != 0 && offset > 0) {
         in.seek(offset);

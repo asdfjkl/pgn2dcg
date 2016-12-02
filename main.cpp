@@ -47,14 +47,18 @@ int main(int argc, char *argv[])
     // first scan pgn file, extract all names and sites, and but them
     // into Maps (Site, offset) and (Name, offset)
     std::cout << "opening " << pgnFileName.toStdString() << std::endl;
+
     chess::PgnReader *pgnReader = new chess::PgnReader();
+    // guess the encoding of the pgn file
+    const char* encoding = pgnReader->detect_encoding(pgnFileName);
+
     std::cout << "scanning headers... " << std::endl;
-    QList<chess::HeaderOffset*> *headers = pgnReader->scan_headers(pgnFileName);
+    QList<chess::HeaderOffset*> *headers = pgnReader->scan_headers(pgnFileName, encoding);
     QMap<QString, quint64> *names = new QMap<QString, quint64>();
     QMap<QString, quint64> *sites = new QMap<QString, quint64>();
     for(int i=0; i<headers->size();i++) {
         std::cout << "converting game " << (i+1) << " of " << headers->size() << std::endl;
-        chess::Game *gi = pgnReader->readGameFromFile(pgnFileName, headers->value(i)->offset);
+        chess::Game *gi = pgnReader->readGameFromFile(pgnFileName, encoding, headers->value(i)->offset);
         QString whitePlayer = gi->headers->value("White");
         QString blackPlayer = gi->headers->value("Black");
         QString site = gi->headers->value("Site");

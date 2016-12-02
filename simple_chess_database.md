@@ -6,20 +6,45 @@
 
 ## Motivation
 
-PGN standard inefficient for database exchange, access, manipulation and search.
-This specification chess interchange format.
-SIMPLICITY above anything else. No Chess960, Bughouse etc, no complex binary XML schemes 
-and tries to keep encoding syntax so simple, that writing an encoder/decoder should be a simple task.
+The only interoperable format to store and exchange chess games is the PGN standard.
+PGN is however very inefficient for database exchange, access, manipulation and search. 
+Moroever, it is notoriously difficult to parse.
 
-Advantages:
+Some proprietary binary storage formats for chess games exist; they are usually the result
+of a program author (commercial or open-source) creating an ad-hoc implementation and rarely
+documented, if at all by some comments in the source code. Datatypes are also rarely 
+standardized, and rely on the conventions by the compiler.
 
-* Allows very simple parser
-* No move generator / chess logic necessary! No bitboards Especially important intepreted language
-* Extendibility (by creating/using additional indexing files or memory mapping
-data) faster search, e.g. opening tree indexing etc.
-* For move specific additional info (i.e. arrows), can define a specific structure of the comment encoding.
+This standard propses a simple chess database format. It puts simplicity above _all_ other
+design considerations. In particular writing an encoder/decoder should be a simple task for any program author.
 
-Main disadvantage wastes space.
+It's advantages are:
+
+* It is fully binary. Files are much smaller compared to PGN and operations on binary files are much more performant.
+* It is designed to efficiently support basic database operations (e.g. efficiently deleting or replacing a game in a large database).
+* It allows to create a very simple parser. There is no need e.g. for complex XML decoders or schemes.
+* **No move generator / chess logic us necessary!**. No PerfT tests. No endless debugging. Not trying to recreate the precies move-generator from a specific implementation. No messing around with bitboards. This is especially important for intepreted and web-languages, where implementing
+  a performant move generator is no trivial task.
+* Extendibility. Database Program authors can easily add features without violating the standard, by e.g. creating/using additional indexing files or memory mapping to increase search speed for certain operations (like an opening tree etc.).
+* Similar additional info (i.e. visual board annotations, images) can be stored by adding additional program-specific files without violating this standard.
+
+These advantages come with a few distadvantages. Especially the following two should be mentioned:
+* In the current standard, there is no support for Chess960, Bughouse or other variants - it's chess only. This decision is the result of trying to balance implementation complexity (to allow easy adoption) and feature-richness
+* Some space is wasted compare to more optimized database implementations. Again this is a conscious decision to allow easier implementation.
+
+Concerning the latter, moves are here stored with the originating square, the target square, and
+possible promotion pieces. This simple encoding requires two bytes per move. This allows for easy parsing since no chess-logic or move generation needs to be implemented to parse and display games (think e.g. a web-interface to a database-file). Chess moves can be stored in a more optimal fashion, usually requiring only one byte.
+
+Nevertheless the saved space is neglibile. Let's take the ChessBase Mega-Database, which stored approximately 6.7 million games and can be considered the biggest chess database available today. Assume that on average a chess game contains 40 moves. Comparing
+an optimal encoding and the much simpler encoding here we have:
+
+* 6.7 million games * 40 moves * 1 Byte per move = 268 megabytes for the optimized database and
+* 6.7 million games * 40 moves * 2 Byte per move = 536 megabytes for this encoding.
+
+As can be seen, such optimal encodings were very relevant in the age of floppy disks. But in
+todays age the much simpler encoding of this standard can easily handled by even the slowest
+available computers today, and can even very likely be accessed completely in-memory (in RAM) 
+to speed up database operations.
 
 
 ## Overview

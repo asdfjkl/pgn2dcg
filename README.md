@@ -49,7 +49,7 @@ to speed up database operations.
 
 ## Overview
 
-A simple chess database consists of two files:
+A simple chess database consists of four files:
 
 1. an index file. The naming convenction is `database.dci`
 2. a name file, containing all player names. The naming convention is `database.dcn`

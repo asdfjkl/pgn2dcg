@@ -27,16 +27,55 @@
 #include <QStack>
 #include <QDebug>
 #include <QTextCodec>
+#include <QDataStream>
 
 namespace chess {
 
 const char* PgnReader::detect_encoding(const QString &filename) {
-    //const char* enc = "UTF-8";
-    const char* enc = "ISO 8859-1";
-    return enc;
+    // very simple way to detecting majority of encodings:
+    // first try ISO 8859-1
+    // open the file and read a max of 100 first bytes
+    // if "conversion" works, try some more bytes
+    // if conversion errors occur, we simply assume UTF-8
+    const char* iso = "ISO 8859-1";
+    const char* utf8 = "UTF-8";
+    QFile file(filename);
+    if(!file.open(QFile::ReadOnly)) {
+        return utf8;
+    }
+    QDataStream in(&file);
+    // init some char array to read bytes
+    char first100arr[100];
+    for(int i=0;i<100;i++) {
+        first100arr[i] = 0x00;
+    }
+    char *first100 = first100arr;
+    // prep conversion tools
+    QTextCodec::ConverterState state;
+    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+
+    int iterations = 40;
+    int i=0;
+    int l = 100;
+    bool isUtf8 = true;
+    while(i<iterations && l>=100) {
+        int l = in.readRawData(first100, 100);
+        const QString text = codec->toUnicode(first100, 100, &state);
+        if (state.invalidChars > 0) {
+            isUtf8 = false;
+            qDebug() << "I think this is not UTF-8";
+            break;
+        }
+        i++;
+    }
+    if(isUtf8) {
+        return utf8;
+    } else {
+        return iso;
+    }
 }
 
-QList<HeaderOffset*>* PgnReader::scan_headers(const QString &filename) {
+QList<HeaderOffset*>* PgnReader::scan_headers(const QString &filename, const char* encoding) {
 
     QList<HeaderOffset*> *header_offsets = new QList<HeaderOffset*>();
     QFile file(filename);
@@ -131,7 +170,7 @@ QList<HeaderOffset*>* PgnReader::scan_headers(const QString &filename) {
     return header_offsets;
 }
 
-QString* PgnReader::readFileIntoString(const QString &filename) {
+QString* PgnReader::readFileIntoString(const QString &filename, const char* encoding) {
 
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -241,8 +280,8 @@ QList<HeaderOffset*>* PgnReader::scan_headersFromString(QString *contents) {
 }
 
 
-Game* PgnReader::readGameFromFile(const QString &filename) {
-    return this->readGameFromFile(filename,0);
+Game* PgnReader::readGameFromFile(const QString &filename, const char* encoding) {
+    return this->readGameFromFile(filename, encoding, 0);
 }
 
 Game* PgnReader::readGameFromString(QString *pgn_string) {
@@ -257,7 +296,7 @@ Game* PgnReader::readGameFromString(QString *pgn_string, quint64 offset) {
 }
 
 
-Game* PgnReader::readGameFromFile(const QString &filename, qint64 offset) {
+Game* PgnReader::readGameFromFile(const QString &filename, const char* encoding, qint64 offset) {
 
     QFile file(filename);
 

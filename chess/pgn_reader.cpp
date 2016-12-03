@@ -35,7 +35,7 @@ const char* PgnReader::detect_encoding(const QString &filename) {
     // very simple way to detecting majority of encodings:
     // first try ISO 8859-1
     // open the file and read a max of 100 first bytes
-    // if "conversion" works, try some more bytes
+    // if conversion to unicode works, try some more bytes (at most 40 * 100)
     // if conversion errors occur, we simply assume UTF-8
     const char* iso = "ISO 8859-1";
     const char* utf8 = "UTF-8";
@@ -59,7 +59,7 @@ const char* PgnReader::detect_encoding(const QString &filename) {
     int l = 100;
     bool isUtf8 = true;
     while(i<iterations && l>=100) {
-        int l = in.readRawData(first100, 100);
+        l = in.readRawData(first100, 100);
         const QString text = codec->toUnicode(first100, 100, &state);
         if (state.invalidChars > 0) {
             isUtf8 = false;
@@ -330,6 +330,7 @@ Game* PgnReader::readGame(QTextStream& in) {
     GameNode* current = g->getRootNode();
 
     QString line = in.readLine();
+    qDebug() << "line @ offset: " << line;
     while (!in.atEnd()) {
         if(line.startsWith("%") || line.isEmpty()) {
             line = in.readLine();

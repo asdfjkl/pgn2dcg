@@ -99,7 +99,9 @@ int main(int argc, char *argv[])
                   name_i.append(0x20);
               }
           }
+          quint64 offset = fnNames.pos();
           s.writeRawData(name_i,36);
+          names->insert(name_i, offset);
       }
       success = true;
     } else {
@@ -131,7 +133,9 @@ int main(int argc, char *argv[])
                   site_i.append(0x20);
               }
           }
+          quint64 offset = fnSites.pos();
           s.writeRawData(site_i,36);
+          sites->insert(site_i, offset);
       }
       success = true;
     } else {

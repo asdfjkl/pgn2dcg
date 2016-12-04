@@ -1,4 +1,4 @@
-#The Simple Chess Database Format (.dc*)
+﻿#The Simple Chess Database Format (.dc*)
 
     Version 1.0
 
@@ -8,14 +8,14 @@
 
 The only interoperable format to store and exchange chess games is the PGN (Portable Game Notation) standard.
 PGN is however very inefficient for database exchange, access, manipulation and search. 
-Moroever, it is notoriously difficult to parse.
+Moreover, it is notoriously difficult to parse.
 
 Some proprietary binary storage formats for chess games exist; they are usually the result
 of a program author (commercial or open-source) creating an ad-hoc implementation. Hence, they
 are rarely documented, if at all mostly by some comments in the source code. 
-Often, datatypes are also not standardized, and rely on (possibly platform-dependent) compiler conventions.
+Often, data types are also not standardized, and rely on (possibly platform-dependent) compiler conventions.
 
-This standard propses a simple chess database format. It puts simplicity above _all_ other
+This standard proposes a simple chess database format. It puts simplicity above _all_ other
 design considerations. In particular it is designed such that writing an encoder/decoder 
 is as simple as possible for any program author, independent of the implementation language and existing libraries.
 
@@ -24,19 +24,19 @@ In particular, this format's advantages are:
 * It is fully binary. Files are much smaller compared to PGN and operations on binary files are much more performant.
 * It is designed to efficiently support basic database operations (e.g. quickly deleting or replacing a game in a large database).
 * It allows to create a very simple parser. There is no need for e.g. complex XML decoders or schemes.
-* **No move generator / chess logic is necessary!**. No PerfT tests. No endless debugging. No trying to recreate the precies move-generator from a specific implementation. No messing around with bitboards. All this is especially important for intepreted and web-languages, where implementing
+* **No move generator / chess logic is necessary!**. No PerfT tests. No endless debugging. No trying to recreate the precise move-generator from a specific implementation. No messing around with bitboards. All this is especially important for interpreted and web-languages, where implementing
   a performant move generator is no trivial task.
 * Extendibility. Database program authors can easily add features without violating the standard, by e.g. creating/using additional indexing files or memory mapping to increase search speed for certain operations (like an opening tree etc.).
 * Similar additional info (i.e. visual board annotations, images) can be stored by adding additional program-specific files without violating this standard.
 
-These advantages come with a few distadvantages. Especially the following two should be mentioned:
+These advantages come with a few disadvantages. Especially the following two should be mentioned:
 * In the current standard, there is no support for Chess960, Bughouse or other variants - it's chess only. This decision is the result of trying to balance implementation complexity (to allow easy adoption) and feature-richness.
 * Some space is wasted compared to more optimized database implementations. Again this is a conscious design decision to allow easier implementation.
 
 Concerning the latter, moves are here stored with the originating square, the target square, and
 the potential promoting piece. This encoding is straight forward and requires two bytes per move. Hence, parsing is easy since no chess-logic or move generation needs to be implemented to parse and display games (think e.g. a web-interface to a database-file). On the other hand, chess moves can be stored in a more compact fashion, requiring only one byte (or even less).
 
-Nevertheless the saved space is neglibile. Let's take the ChessBase Mega-Database, which stores approximately 6.7 million games and can be considered the biggest chess database available today. Assume that on average a chess game contains 40 moves. Comparing
+Nevertheless the saved space is negligible. Let's take the ChessBase Mega-Database, which stores approximately 6.7 million games and can be considered the biggest chess database available today. Assume that on average a chess game contains 40 moves. Comparing
 a more optimal encoding and the much simpler encoding of this standard we have:
 
 * 6.7 million games * 40 moves * 1 Byte per move = 268 megabytes for the optimized database and
@@ -51,7 +51,7 @@ available computers, and the full database can even very likely be accessed comp
 
 A simple chess database consists of four files:
 
-1. an index file. The naming convenction is `database.dci`
+1. an index file. The naming convention is `database.dci`
 2. a name file, containing all player names. The naming convention is `database.dcn`
 3. a site file, containing all playing sites. The naming convention is `database.dcs`
 4. a file containing all games, including comments
@@ -60,7 +60,7 @@ The naming convention is `database.dcg`
 
 ### Index File
 
-An index file containging N games has the following format:
+An index file containing N games has the following format:
 
     [ MagicBytesIndex  |  Version Number | IndexEntry #1 | IndexEntry #2 | ... | IndexEntry #N ]
       10 Bytes            1 Byte           35 Byte         35 Byte               35 Byte
@@ -91,7 +91,7 @@ Real deletion (potentially requiring lots of disk-intensive rewrites) of this ga
 Status is `0x00` normally. Otherwise, if the game is marked for deletion, the status byte is `0xFF`.
 
 **Offset**
-Offset is a unisgned int64 denoting the position (offset) of the game in the game file (i.e. database.dcg)
+Offset is a unsigned int64 denoting the position (offset) of the game in the game file (i.e. database.dcg)
 
 **WhiteRef**
 Offset (unsigned 32-bit integer) pointing to the White player entry in `database.dcn`.
@@ -106,10 +106,10 @@ Unsigned 16 bit integer denoting the round the game was played in. `0x00` if unk
 Offset (unsigned 32-bit integer) pointing to the White player entry in `database.dcn`.
 
 **Elo White**
-Elo White is an unsigend 16 bit integer denoting the ELO number of the White player
+Elo White is an unsigned 16 bit integer denoting the ELO number of the White player
 
 **Elo Black**
-Elo Black is an unsigend 16 bit integer denoting the ELO number of the Black player
+Elo Black is an unsigned 16 bit integer denoting the ELO number of the Black player
 
 **Result**
 Result denotes the game result:
@@ -245,7 +245,7 @@ In other words we start counting at the lower left corner from White's perspecti
 count right-upward.
 
 Below we list the meaning of the bits of the two bytes. We use Big Endian encoding, 
-i.e. bit position 0 denotes the hightest bit.
+i.e. bit position 0 denotes the highest bit.
 
 Move encoding
 
@@ -301,8 +301,8 @@ BER-TLV length value of the following annotations (at least one annotation must 
 for the precise encoding.
 
 **Annotations**
-is a sequence of bytes. One byte corresponds to one annotation. The annoation relates to the last
-move that occured before the annotation in the byte stream of a Game.
+is a sequence of bytes. One byte corresponds to one annotation. The annotation relates to the last
+move that occurred before the annotation in the byte stream of a Game.
 The encoding of the annotations (codes) are a subset of the Numeric Annotation Glyphs (NAGs) of the
 PGN standard. The integer values below are stored as an unsigned 8-bit integer.
 

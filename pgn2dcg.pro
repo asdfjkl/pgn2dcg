@@ -19,7 +19,10 @@ SOURCES += main.cpp \
     chess/pgn_printer.cpp \
     chess/pgn_reader.cpp \
     chess/polyglot.cpp \
-    chess/dcgwriter.cpp
+    chess/dcgwriter.cpp \
+    chess/namebase.cpp \
+    chess/sitebase.cpp \
+    chess/database.cpp
 
 HEADERS += \
     chess/board.h \
@@ -31,4 +34,7 @@ HEADERS += \
     chess/pgn_printer.h \
     chess/pgn_reader.h \
     chess/polyglot.h \
-    chess/dcgwriter.h
+    chess/dcgwriter.h \
+    chess/namebase.h \
+    chess/sitebase.h \
+    chess/database.h

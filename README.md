@@ -272,7 +272,7 @@ The bits [ T1 T2 T3 T4 T5 T6 ] interpreted as an unsigned integer (Big Endian, i
 
 
 **BeginOfVariation**
-This is the single byte 0x80. Note that this is the bit sequence 10000000. We can always distinguish
+This is the single byte 0x84. Note that this is the bit sequence 10000000. We can always distinguish
 tags like BeginOfVariation, EndOfVariation, StartOfComment, AnnotationFollows and NullMove by checking
 the highest bit. If that bit is 0, we have the start of a two byte move sequence. Otherwise we have
 a one byte tag.

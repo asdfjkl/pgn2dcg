@@ -3,7 +3,9 @@
 #include <QFile>
 #include <QDataStream>
 #include <iostream>
+#include <QDebug>
 #include "chess/pgn_reader.h"
+#include "chess/dcgwriter.h"
 
 int main(int argc, char *argv[])
 {
@@ -54,8 +56,8 @@ int main(int argc, char *argv[])
 
     std::cout << "scanning headers... " << std::endl;
     QList<chess::HeaderOffset*> *headers = pgnReader->scan_headers(pgnFileName, encoding);
-    QMap<QString, quint64> *names = new QMap<QString, quint64>();
-    QMap<QString, quint64> *sites = new QMap<QString, quint64>();
+    QMap<QString, quint32> *names = new QMap<QString, quint32>();
+    QMap<QString, quint32> *sites = new QMap<QString, quint32>();
     for(int i=0; i<headers->size();i++) {
         std::cout << "converting game " << (i+1) << " of " << headers->size() << std::endl;
         chess::Game *gi = pgnReader->readGameFromFile(pgnFileName, encoding, headers->value(i)->offset);
@@ -99,7 +101,7 @@ int main(int argc, char *argv[])
                   name_i.append(0x20);
               }
           }
-          quint64 offset = fnNames.pos();
+          quint32 offset = fnNames.pos();
           s.writeRawData(name_i,36);
           names->insert(name_i, offset);
       }
@@ -133,7 +135,7 @@ int main(int argc, char *argv[])
                   site_i.append(0x20);
               }
           }
-          quint64 offset = fnSites.pos();
+          quint32 offset = fnSites.pos();
           s.writeRawData(site_i,36);
           sites->insert(site_i, offset);
       }
@@ -145,6 +147,88 @@ int main(int argc, char *argv[])
     if(!success) {
         throw std::invalid_argument("Error writing file");
     }
+    pgnFile.close();
+
+
+    // now save everything
+    chess::DcgWriter *dcgWriter = new chess::DcgWriter();
+
+    QString fnIndexString = pgnFileName.left(pgnFileName.size()-3).append("dci");
+    QFile fnIndex(fnIndexString);
+
+    QString fnGamesString = pgnFileName.left(pgnFileName.size()-3).append("dcg");
+    QFile fnGames(fnGamesString);
+
+    if(fnIndex.open(QFile::WriteOnly)) {
+      QDataStream si(&fnIndex);
+      QByteArray magicIndexString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x69");
+      si.writeRawData(magicIndexString, magicIndexString.length());
+
+      if(fnGames.open(QFile::WriteOnly)) {
+        QDataStream sg(&fnGames);
+        QByteArray magicGamesString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x62");
+        sg.writeRawData(magicGamesString, magicGamesString.length());
+
+        for(int i=0;i<headers->size();i++) {
+
+            chess::HeaderOffset *header_i = headers->at(i);
+            qDebug() << "loop1";
+
+            // first write index entry
+            // marker
+            si << quint8(0x00);
+            qDebug() << "loop2";
+
+            // game offset
+            QByteArray *offset = new QByteArray();
+            dcgWriter->append_as_uint64(offset, fnGames.pos());
+            qDebug() << "loop3";
+
+            si.writeRawData(*offset, offset->length());
+
+            // white offset
+            QString white = header_i->headers->value("White");
+            QByteArray *offset_white = new QByteArray();
+            dcgWriter->append_as_uint32(offset_white, quint32(names->value(white)));
+            si.writeRawData(*offset_white, offset_white->length());
+            // black offset
+            QString black = header_i->headers->value("Black");
+            QByteArray *offset_black = new QByteArray();
+            dcgWriter->append_as_uint32(offset_black, quint32(names->value(black)));
+            si.writeRawData(*offset_black, offset_black->length());
+            // round
+            quint32 round = header_i->headers->value("Round").toUInt();
+            si << round;
+            // site offset
+            quint32 site_offset = sites->value(header_i->headers->value("Site"));
+            si << site_offset;
+            // elo white
+            quint16 elo_white = header_i->headers->value("Elo White").toUInt();
+            si << elo_white;
+            quint16 elo_black = header_i->headers->value("Elo White").toUInt();
+            si << elo_black;
+            // result TODO
+            si << 0x00;
+            // ECO
+            si << QString("A00");
+            // year
+            si << quint16(1981);
+            // month
+            si << quint8(3);
+            // day
+            si << quint8(20);
+
+            chess::Game *g = pgnReader->readGameFromFile(pgnFileName, encoding, header_i->offset);
+            QByteArray *g_enc = dcgWriter->encodeGame(g);
+            sg.writeRawData(*g_enc, g_enc->length());
+
+        }
+
+      }
+      fnGames.close();
+    }
+    fnIndex.close();
+
 
     return 0;
 }

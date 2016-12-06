@@ -311,21 +311,27 @@ The encoding of the annotations (codes) are a subset of the Numeric Annotation G
 PGN standard. The integer values below are stored as an unsigned 8-bit integer.
 
 *NAG_GOOD_MOVE = 1*
+
 A good move. Can also be indicated by ``!`` in PGN notation.
 
 *NAG_MISTAKE = 2*
+
 A mistake. Can also be indicated by ``?`` in PGN notation.
 
 *NAG_BRILLIANT_MOVE = 3*
+
 A brilliant move. Can also be indicated by ``!!`` in PGN notation.
 
 *NAG_BLUNDER = 4*
+
 A blunder. Can also be indicated by ``??`` in PGN notation.
 
 *NAG_SPECULATIVE_MOVE = 5*
+
 A speculative move. Can also be indicated by ``!?`` in PGN notation.
 
 *NAG_DUBIOUS_MOVE = 6*
+
 A dubious move. Can also be indicated by ``?!`` in PGN notation.
 
 *NAG_FORCED_MOVE = 7*

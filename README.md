@@ -103,16 +103,16 @@ Offset (unsigned 32-bit integer) pointing to the White player entry in `database
 Offset (unsigned 32-bit integer) pointing to the White player entry in `database.dcn`.
 
 **Round**
-Unsigned 16 bit integer denoting the round the game was played in. `0x00` if unknown.
+Unsigned 16 bit integer denoting the round the game was played in. `0x00 0x00` if unknown.
 
 **SiteRef**
 Offset (unsigned 32-bit integer) pointing to an entry in `database.dcn`, i.e. the site the game was played at...
 
 **Elo White**
-Elo White is an unsigned 16 bit integer denoting the ELO number of the White player
+Elo White is an unsigned 16 bit integer denoting the ELO number of the White player.`0x00 0x00` if unknown.
 
 **Elo Black**
-Elo Black is an unsigned 16 bit integer denoting the ELO number of the Black player
+Elo Black is an unsigned 16 bit integer denoting the ELO number of the Black player.`0x00 0x00` if unknown.
 
 **Result**
 Result denotes the game result:

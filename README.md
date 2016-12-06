@@ -126,7 +126,7 @@ Result denotes the game result:
 ECO: 3 ASCII characters (not 0-terminated) denoting the ECO code of the game
 
 **Year**
-Year: unsigned 16 bit integer denoting the year the game was played. `0x00` if unknown
+Year: unsigned 16 bit integer denoting the year the game was played. `0x00 0x00` if unknown
 
 **Month**
 Month: unsigned 8 bit integer denoting the month the game was played. `0x00` if unknown

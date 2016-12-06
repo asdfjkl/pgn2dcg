@@ -44,7 +44,7 @@ a more optimal encoding and the much simpler encoding of this standard we have:
 * 6.7 million games * 40 moves * 1 Byte per move = 268 megabytes for the optimized database and
 * 6.7 million games * 40 moves * 2 Byte per move = 536 megabytes for this encoding.
 
-As can be seen, such optimal encodings were very relevant in the age of floppy disks. But when the full database fits on a standard CD, one can assume that in todays age the much simpler encoding used by this standard can easily be handled by even a very low-end machine.
+As can be seen, such optimal encodings were very relevant in the age of floppy disks. But here, a full database will fit likely on a standard CD (or at least a DVD), and thus one can assume that in todays age the much simpler encoding used by this standard is easily handled by even a very low-end machine.
 
 ## Overview
 

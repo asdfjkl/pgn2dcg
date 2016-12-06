@@ -34,7 +34,7 @@ These advantages come with a few disadvantages. Especially the following two sho
 * Some space is wasted compared to more optimized database implementations. Again this is a conscious design decision to allow easier implementation.
 
 Concerning the latter, moves are here stored with the originating square, the target square, and
-the potential promoting piece. This encoding is straight forward and requires two bytes per move. Hence, parsing is easy since no chess-logic or move generation needs to be implemented to parse and display games (think e.g. a web-interface to a database-file). On the other hand, chess moves can be stored in a more compact fashion, requiring only one byte (or even less).
+the potential promoting piece. This encoding is straight forward and requires two bytes per move. Hence, parsing is easy since no chess-logic or move generation needs to be implemented to parse and display games (think e.g. a web-interface to a database-file just for viewing games). On the other hand, chess moves can be stored in a more compact fashion, requiring only one byte (or even less).
 
 Nevertheless the saved space is negligible. Let's take the ChessBase Mega-Database, which stores approximately 6.7 million games and can be considered the biggest chess database available today. Assume that on average a chess game contains 40 moves. Comparing
 a more optimal encoding and the much simpler encoding of this standard we have:

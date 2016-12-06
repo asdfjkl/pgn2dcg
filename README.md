@@ -179,15 +179,17 @@ The database file is a sequence of N games:
 
 A game is build as
 
-    Game = [ GameLength [FenMarker or FenMarker | FenLen | Fen] 
-                          [ Move or 
-                           BeginOfVariation or 
-		    		       EndOfVariation or 
-			    	       [ StartofComment CommentLength Comment] or 
-				           [ AnnotationsFollow AnnotationLength Annotations ] or
-				           NullMove
-				         ]
-    	   ]
+    Game = [ GameLength [FenMarker or FenMarker | FenLen | Fen] Moves ]
+    
+where
+
+    Moves = [ Move or 
+              BeginOfVariation or 
+              EndOfVariation or 
+	      [ StartofComment CommentLength Comment] or 
+	      [ AnnotationsFollow AnnotationLength Annotations ] or
+	      NullMove
+	    ]
 
 **MagicBytesGame**
 

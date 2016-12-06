@@ -87,7 +87,7 @@ Unsigned 64 bit integer pointing to the offset of an IndexEntry within the index
                    1 Byte   8 Byte   4 Byte     4 Byte       2 Byte    4 Byte       2 Byte      2 Byte       1 Byte   3 Byte   2 Byte   1 Byte  1 Byte
 
 Games may not be deleted immediately to speed up writing out changes made by a user. Hence games
-can be marked as deleted, and a game with the applied changes can be added at the end of the file.
+can be marked as deleted, and a game with the applied changes can be added at the end of the (game) file.
 Real deletion (potentially requiring lots of disk-intensive rewrites) of this game can then be carried out later by removing such marked games and thus compacting the database. The status byte is used to mark this deletion status.
 
 **Status**

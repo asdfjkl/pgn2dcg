@@ -79,7 +79,7 @@ One byte `0x00` to denote the version of the standard described in this document
 
 **OpenDefault**
 
-This points to the offset of an IndexEntry within the index file. The game associated with this IndexEntry that is intended to be opened by default - this can be used to remember what game a user viewed the last time she opened the database.
+Unsigned 64 bit integer pointing to the offset of an IndexEntry within the index file. The game associated with this IndexEntry that is intended to be opened by default - this can be used to remember what game a user viewed the last time she opened the database.
 
 **IndexEntry**
 

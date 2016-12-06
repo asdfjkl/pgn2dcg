@@ -183,13 +183,13 @@ A game is build as
     
 where
 
-    Moves = [ Move or 
-              BeginOfVariation or 
-              EndOfVariation or 
-	      [ StartofComment CommentLength Comment] or 
-	      [ AnnotationsFollow AnnotationLength Annotations ] or
-	      NullMove
-	    ]
+    Moves = [   Move or 
+                BeginOfVariation or 
+                EndOfVariation or 
+                [ StartofComment CommentLength Comment] or 
+                [ AnnotationsFollow AnnotationLength Annotations ] or
+                NullMove
+            ]
 
 **MagicBytesGame**
 

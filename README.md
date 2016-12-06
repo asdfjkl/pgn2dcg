@@ -2,7 +2,7 @@
 
     Version 1.0
 
-    06/12/2016
+    Dec. 6th, 2016
 
 ## Motivation
 

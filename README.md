@@ -45,7 +45,7 @@ a more optimal encoding and the much simpler encoding of this standard we have:
 * 6.7 million games * 40 moves * 2 Byte per move = 536 megabytes for this encoding.
 
 As can be seen, such optimal encodings were very relevant in the age of floppy disks. But in
-todays age the much simpler encoding of this standard can easily handled by even the slowest
+todays age the much simpler encoding of this standard can easily be handled by even the slowest
 available computers, and the full database can even very likely be accessed completely in-memory (i.e. in RAM) to speed up database operations.
 
 

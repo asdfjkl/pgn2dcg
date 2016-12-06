@@ -62,8 +62,8 @@ The naming convention is `database.dcg`
 
 An index file containing N games has the following format:
 
-    [ MagicBytesIndex  |  Version Number | IndexEntry #1 | IndexEntry #2 | ... | IndexEntry #N ]
-      10 Bytes            1 Byte           35 Byte         35 Byte               35 Byte
+    [ MagicBytesIndex  |  Version Number | OpenDefault | IndexEntry #1 | IndexEntry #2 | ... | IndexEntry #N ]
+      10 Bytes            1 Byte           8 Byte        35 Byte         35 Byte               35 Byte
 
 The next sections describe the above blocks in details.
 
@@ -77,6 +77,10 @@ i.e. "SimpleCDbi" in ASCII without a string terminator.
 **Version Number**
 
 One byte `0x00` to denote the version of the standard described in this document.
+
+**OpenDefault**
+
+This points to the offset of an IndexEntry within the index file. The game associated with this IndexEntry that is intended to be opened by default - this can be used to remember what game a user viewed the last time she opened the database.
 
 **IndexEntry**
 

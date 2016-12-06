@@ -106,7 +106,7 @@ Offset (unsigned 32-bit integer) pointing to the White player entry in `database
 Unsigned 16 bit integer denoting the round the game was played in. `0x00` if unknown.
 
 **SiteRef**
-Offset (unsigned 32-bit integer) pointing to the White player entry in `database.dcn`.
+Offset (unsigned 32-bit integer) pointing to an entry in `database.dcn`, i.e. the site the game was played at...
 
 **Elo White**
 Elo White is an unsigned 16 bit integer denoting the ELO number of the White player

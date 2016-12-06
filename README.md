@@ -286,24 +286,23 @@ a one byte tag.
 Single byte 0x85 (bit sequence 10000101).
 
 **StartOfComment**
-Single byte 0x86 (bit sequence 10000110).
+Single byte 0x86 (bit sequence 10000110). After StartOfComment, CommentLength and Comment MUST follow.
 
 **AnnotationsFollow**
-Single byte 0x87 (bit sequence 10000111).
+Single byte 0x87 (bit sequence 10000111). After AnnotationsFollow, AnnotationLength and Annotations MUST follow.
 
 **NullMove**
 Single byte 0x88 (bit sequence 10001000).
 
 **CommentLength**
-BER-TLV length value of the following comment (a comment MUST follow). See GameLength
+BER-TLV length value of the following comment. See GameLength
 for the precise encoding.
 
 **Comment**
 Comment is a UTF8-encoded string  
 
 **AnnotationLength**
-BER-TLV length value of the following annotations (at least one annotation must follow). See GameLength
-for the precise encoding.
+BER-TLV length value of the following annotations (at least _one_ annotation must follow, i.e. AnnotationLength MUST be larger or equal than one). See GameLength for the precise encoding.
 
 **Annotations**
 is a sequence of bytes. One byte corresponds to one annotation. The annotation relates to the last

@@ -120,7 +120,7 @@ Result denotes the game result:
 - `0x03` = Draw
 
 **ECO**
-ECO: 3 ASCII characters (not 0-terminated) denoting the ECO code of the game
+ECO: 3 ASCII characters (not 0-terminated) denoting the ECO code of the game. 0x00 0x00 0x00 if unknown.
 
 **Year**
 Year: unsigned 16 bit integer denoting the year the game was played. `0x00` if unknown

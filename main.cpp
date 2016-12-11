@@ -3,6 +3,7 @@
 #include <QFile>
 #include <QDataStream>
 #include <iostream>
+#include <QStringList>
 #include <QDebug>
 #include "chess/pgn_reader.h"
 #include "chess/dcgwriter.h"
@@ -172,30 +173,19 @@ int main(int argc, char *argv[])
         for(int i=0;i<headers->size();i++) {
 
             chess::HeaderOffset *header_i = headers->at(i);
-            qDebug() << "loop1";
-
             // first write index entry
-            // marker
+            // status
             si << quint8(0x00);
-            qDebug() << "loop2";
-
             // game offset
-            QByteArray *offset = new QByteArray();
-            dcgWriter->append_as_uint64(offset, fnGames.pos());
-            qDebug() << "loop3";
-
-            si.writeRawData(*offset, offset->length());
-
+            si << quint64(fnGames.pos());
             // white offset
             QString white = header_i->headers->value("White");
-            QByteArray *offset_white = new QByteArray();
-            dcgWriter->append_as_uint32(offset_white, quint32(names->value(white)));
-            si.writeRawData(*offset_white, offset_white->length());
+            quint32 whiteOffset = names->value(white);
+            si << whiteOffset;
             // black offset
             QString black = header_i->headers->value("Black");
-            QByteArray *offset_black = new QByteArray();
-            dcgWriter->append_as_uint32(offset_black, quint32(names->value(black)));
-            si.writeRawData(*offset_black, offset_black->length());
+            quint32 blackOffset = names->value(black);
+            si << blackOffset;
             // round
             quint32 round = header_i->headers->value("Round").toUInt();
             si << round;
@@ -207,17 +197,60 @@ int main(int argc, char *argv[])
             si << elo_white;
             quint16 elo_black = header_i->headers->value("Elo White").toUInt();
             si << elo_black;
-            // result TODO
-            si << 0x00;
+            // result
+            if(header_i->headers->contains("Result")) {
+                QString res = header_i->headers->value("Result");
+                if(res == "1-0") {
+                    si << 0x01;
+                } else if(res == "0-1") {
+                    si << 0x02;
+                } else if(res == "1/2-1/2") {
+                    si << 0x03;
+                } else {
+                    si << 0x00;
+                }
+            } else {
+                si << 0x00;
+            }
             // ECO
-            si << QString("A00");
-            // year
-            si << quint16(1981);
-            // month
-            si << quint8(3);
-            // day
-            si << quint8(20);
-
+            if(header_i->headers->contains("ECO")) {
+                QByteArray eco = header_i->headers->value("ECO").toUtf8();
+                si.writeRawData(eco, eco.length());
+            } else {
+                si << 0x00 << 0x00 << 0x00;
+            }
+            // parse date
+            if(header_i->headers->contains("Date")) {
+                QString date = header_i->headers->value("Date");
+                // try to parse the date
+                quint16 year = 0;
+                quint8 month = 0;
+                quint8 day = 0;
+                QStringList dd_mm_yy = date.split(".");
+                if(dd_mm_yy.size() > 0 && dd_mm_yy.at(0).length() == 4) {
+                    quint16 prob_year = dd_mm_yy.at(0).toInt();
+                    if(prob_year > 0 && prob_year < 2100) {
+                        year = prob_year;
+                    }
+                    if(dd_mm_yy.size() > 1 && dd_mm_yy.at(1).length() == 2) {
+                        quint16 prob_month = dd_mm_yy.at(1).toInt();
+                        if(prob_year > 0 && prob_year <= 12) {
+                            month = prob_month;
+                        }
+                        if(dd_mm_yy.size() > 2 && dd_mm_yy.at(2).length() == 2) {
+                        quint16 prob_day = dd_mm_yy.at(2).toInt();
+                        if(prob_year > 0 && prob_year < 32) {
+                            day = prob_day;
+                            }
+                        }
+                    }
+                }
+                si << year;
+                si << month;
+                si << day;
+            } else {
+                si << 0x00 << 0x00 << 0x00 << 0x00;
+            }
             chess::Game *g = pgnReader->readGameFromFile(pgnFileName, encoding, header_i->offset);
             QByteArray *g_enc = dcgWriter->encodeGame(g);
             sg.writeRawData(*g_enc, g_enc->length());

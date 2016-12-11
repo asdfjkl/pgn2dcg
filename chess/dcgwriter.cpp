@@ -3,6 +3,9 @@
 
 namespace chess {
 
+// TODO: rewrite by using QDataStream. Then appending
+// is simply operator <<
+
 DcgWriter::DcgWriter()
 {
     this->gameBytes = new QByteArray();

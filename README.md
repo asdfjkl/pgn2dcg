@@ -2,7 +2,7 @@
 
     Version 1.0
 
-    30/11/2016
+    Dec. 6th, 2016
 
 ## Motivation
 
@@ -34,7 +34,9 @@ These advantages come with a few disadvantages. Especially the following two sho
 * Some space is wasted compared to more optimized database implementations. Again this is a conscious design decision to allow easier implementation.
 
 Concerning the latter, moves are here stored with the originating square, the target square, and
-the potential promoting piece. This encoding is straight forward and requires two bytes per move. Hence, parsing is easy since no chess-logic or move generation needs to be implemented to parse and display games (think e.g. a web-interface to a database-file). On the other hand, chess moves can be stored in a more compact fashion, requiring only one byte (or even less).
+the potential promoting piece. This encoding is straight forward and requires two bytes per move. Hence, parsing is easy since no chess-logic or move generation needs to be implemented to parse and display games (think e.g. a web-interface to a database-file just for viewing games). 
+
+On the other hand, chess moves can be stored in a more compact fashion, requiring only one byte (or even less).
 
 Nevertheless the saved space is negligible. Let's take the ChessBase Mega-Database, which stores approximately 6.7 million games and can be considered the biggest chess database available today. Assume that on average a chess game contains 40 moves. Comparing
 a more optimal encoding and the much simpler encoding of this standard we have:
@@ -42,10 +44,7 @@ a more optimal encoding and the much simpler encoding of this standard we have:
 * 6.7 million games * 40 moves * 1 Byte per move = 268 megabytes for the optimized database and
 * 6.7 million games * 40 moves * 2 Byte per move = 536 megabytes for this encoding.
 
-As can be seen, such optimal encodings were very relevant in the age of floppy disks. But in
-todays age the much simpler encoding of this standard can easily handled by even the slowest
-available computers, and the full database can even very likely be accessed completely in-memory (i.e. in RAM) to speed up database operations.
-
+As can be seen, such optimal encodings were very relevant in the age of floppy disks. But here, a full database will fit likely on a standard CD (or at least a DVD), and thus one can assume that in todays age the much simpler encoding used by this standard is easily handled by even a very low-end machine.
 
 ## Overview
 
@@ -62,8 +61,8 @@ The naming convention is `database.dcg`
 
 An index file containing N games has the following format:
 
-    [ MagicBytesIndex  |  Version Number | IndexEntry #1 | IndexEntry #2 | ... | IndexEntry #N ]
-      10 Bytes            1 Byte           35 Byte         35 Byte               35 Byte
+    [ MagicBytesIndex  |  Version Number | OpenDefault | IndexEntry #1 | IndexEntry #2 | ... | IndexEntry #N ]
+      10 Bytes            1 Byte           8 Byte        35 Byte         35 Byte               35 Byte
 
 The next sections describe the above blocks in details.
 
@@ -78,13 +77,17 @@ i.e. "SimpleCDbi" in ASCII without a string terminator.
 
 One byte `0x00` to denote the version of the standard described in this document.
 
+**OpenDefault**
+
+Unsigned 64 bit integer pointing to the offset of an IndexEntry within the index file. The game associated with this IndexEntry that is intended to be opened by default - this can be used to remember what game a user viewed the last time she opened the database.
+
 **IndexEntry**
 
     IndexEntry = [ Status | Offset | WhiteRef | BlackRef   | Round   | SiteRef    | Elo White | Elo Black  | Result | ECO    | Year   | Month | Day    ]
                    1 Byte   8 Byte   4 Byte     4 Byte       2 Byte    4 Byte       2 Byte      2 Byte       1 Byte   3 Byte   2 Byte   1 Byte  1 Byte
 
 Games may not be deleted immediately to speed up writing out changes made by a user. Hence games
-can be marked as deleted, and a game with the applied changes can be added at the end of the file.
+can be marked as deleted, and a game with the applied changes can be added at the end of the (game) file.
 Real deletion (potentially requiring lots of disk-intensive rewrites) of this game can then be carried out later by removing such marked games and thus compacting the database. The status byte is used to mark this deletion status.
 
 **Status**
@@ -100,16 +103,16 @@ Offset (unsigned 32-bit integer) pointing to the White player entry in `database
 Offset (unsigned 32-bit integer) pointing to the White player entry in `database.dcn`.
 
 **Round**
-Unsigned 16 bit integer denoting the round the game was played in. `0x00` if unknown.
+Unsigned 16 bit integer denoting the round the game was played in. `0x00 0x00` if unknown.
 
 **SiteRef**
-Offset (unsigned 32-bit integer) pointing to the White player entry in `database.dcn`.
+Offset (unsigned 32-bit integer) pointing to an entry in `database.dcn`, i.e. the site the game was played at...
 
 **Elo White**
-Elo White is an unsigned 16 bit integer denoting the ELO number of the White player
+Elo White is an unsigned 16 bit integer denoting the ELO number of the White player.`0x00 0x00` if unknown.
 
 **Elo Black**
-Elo Black is an unsigned 16 bit integer denoting the ELO number of the Black player
+Elo Black is an unsigned 16 bit integer denoting the ELO number of the Black player.`0x00 0x00` if unknown.
 
 **Result**
 Result denotes the game result:
@@ -123,7 +126,7 @@ Result denotes the game result:
 ECO: 3 ASCII characters (not 0-terminated) denoting the ECO code of the game. 0x00 0x00 0x00 if unknown.
 
 **Year**
-Year: unsigned 16 bit integer denoting the year the game was played. `0x00` if unknown
+Year: unsigned 16 bit integer denoting the year the game was played. `0x00 0x00` if unknown
 
 **Month**
 Month: unsigned 8 bit integer denoting the month the game was played. `0x00` if unknown
@@ -176,15 +179,17 @@ The database file is a sequence of N games:
 
 A game is build as
 
-    Game = [ GameLength [FenMarker or FenMarker | FenLen | Fen] 
-                          [ Move or 
-                           BeginOfVariation or 
-		    		       EndOfVariation or 
-			    	       [ StartofComment CommentLength Comment] or 
-				           [ AnnotationsFollow AnnotationLength Annotations ] or
-				           NullMove
-				         ]
-    	   ]
+    Game = [ GameLength [FenMarker or FenMarker | FenLen | Fen] Moves ]
+    
+where
+
+    Moves = [   Move or 
+                BeginOfVariation or 
+                EndOfVariation or 
+                [ StartofComment CommentLength Comment] or 
+                [ AnnotationsFollow AnnotationLength Annotations ] or
+                NullMove
+            ]
 
 **MagicBytesGame**
 
@@ -281,24 +286,23 @@ a one byte tag.
 Single byte 0x85 (bit sequence 10000101).
 
 **StartOfComment**
-Single byte 0x86 (bit sequence 10000110).
+Single byte 0x86 (bit sequence 10000110). After StartOfComment, CommentLength and Comment MUST follow.
 
 **AnnotationsFollow**
-Single byte 0x87 (bit sequence 10000111).
+Single byte 0x87 (bit sequence 10000111). After AnnotationsFollow, AnnotationLength and Annotations MUST follow.
 
 **NullMove**
 Single byte 0x88 (bit sequence 10001000).
 
 **CommentLength**
-BER-TLV length value of the following comment (a comment MUST follow). See GameLength
+BER-TLV length value of the following comment. See GameLength
 for the precise encoding.
 
 **Comment**
 Comment is a UTF8-encoded string  
 
 **AnnotationLength**
-BER-TLV length value of the following annotations (at least one annotation must follow). See GameLength
-for the precise encoding.
+BER-TLV length value of the following annotations (at least _one_ annotation must follow, i.e. AnnotationLength MUST be larger or equal than one). See GameLength for the precise encoding.
 
 **Annotations**
 is a sequence of bytes. One byte corresponds to one annotation. The annotation relates to the last
@@ -307,21 +311,27 @@ The encoding of the annotations (codes) are a subset of the Numeric Annotation G
 PGN standard. The integer values below are stored as an unsigned 8-bit integer.
 
 *NAG_GOOD_MOVE = 1*
+
 A good move. Can also be indicated by ``!`` in PGN notation.
 
 *NAG_MISTAKE = 2*
+
 A mistake. Can also be indicated by ``?`` in PGN notation.
 
 *NAG_BRILLIANT_MOVE = 3*
+
 A brilliant move. Can also be indicated by ``!!`` in PGN notation.
 
 *NAG_BLUNDER = 4*
+
 A blunder. Can also be indicated by ``??`` in PGN notation.
 
 *NAG_SPECULATIVE_MOVE = 5*
+
 A speculative move. Can also be indicated by ``!?`` in PGN notation.
 
 *NAG_DUBIOUS_MOVE = 6*
+
 A dubious move. Can also be indicated by ``?!`` in PGN notation.
 
 *NAG_FORCED_MOVE = 7*

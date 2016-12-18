@@ -112,6 +112,13 @@ public:
      */
     Game* readGameFromFile(const QString &filename, const char* encoding, qint64 offset);
 
+    QList<HeaderOffset*>* scan_headers_fast(const QString &filename, const char* encoding);
+
+    int readNextHeader(const QString &filename, const char* encoding,
+                                  quint64 *offset, HeaderOffset* headerOffset);
+
+
+
     /**
      * @brief readFileIntoString read the PGN file from disk into memory
      *                    as a string. throws std::invalid_argument if

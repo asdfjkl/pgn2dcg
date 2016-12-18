@@ -169,6 +169,187 @@ QList<HeaderOffset*>* PgnReader::scan_headers(const QString &filename, const cha
     return header_offsets;
 }
 
+int PgnReader::readNextHeader(const QString &filename, const char* encoding,
+                              quint64 *offset, HeaderOffset* headerOffset) {
+
+    QFile file(filename);
+
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return -1;
+
+    file.seek(*offset);
+
+    bool inComment = false;
+
+    QMap<QString,QString> *game_header = new QMap<QString,QString>();
+    qint64 game_pos = -1;
+
+    QTextCodec *codec = QTextCodec::codecForName(encoding);
+
+    QString line = QString("");
+    qint64 last_pos = file.pos();
+
+    QByteArray raw_line;
+
+    // first seek until we have new tags
+    bool foundTag = false;
+    while(!file.atEnd() && !foundTag) {
+        last_pos = file.pos();
+        raw_line = file.readLine();
+        line = codec->toUnicode(raw_line);
+        if(line.startsWith("%")) {
+            raw_line = file.readLine();
+            line = codec->toUnicode(raw_line);
+            continue;
+        }
+        if(!inComment && line.startsWith("[")) {
+            QRegularExpressionMatch match_t = TAG_REGEX.match(line);
+            if(match_t.hasMatch()) {
+                foundTag = true;
+                game_pos = last_pos;
+                continue;
+            }
+        }
+    }
+    // if foundTag is true, we need to scan all remaining headers
+    // read until we encounter a comment line
+    if(foundTag) {
+        bool stop = false;
+        game_header->insert("Event","?");
+        game_header->insert("Site","?");
+        game_header->insert("Date","????.??.??");
+        game_header->insert("Round","?");
+        game_header->insert("White","?");
+        game_header->insert("Black","?");
+        game_header->insert("Result","*");
+        while(!file.atEnd() && !stop) {
+            if(line.startsWith("[")) {
+                QRegularExpressionMatch match_t = TAG_REGEX.match(line);
+                if(match_t.hasMatch()) {
+                    QString tag = match_t.captured(1);
+                    QString value = match_t.captured(2);
+                    game_header->insert(tag,value);
+                }
+            } else {
+                stop = true;
+                continue;
+            }
+            raw_line = file.readLine();
+            line = codec->toUnicode(raw_line);
+        }
+        headerOffset->headers = game_header;
+        headerOffset->offset = game_pos;
+        //headerOffset = ho;
+    } else {
+        return -1;
+    }
+    // set offset to last encountered line
+    *offset = file.pos();
+    return 0;
+}
+
+QList<HeaderOffset*>* PgnReader::scan_headers_fast(const QString &filename, const char* encoding) {
+
+    QList<HeaderOffset*> *header_offsets = new QList<HeaderOffset*>();
+    QFile file(filename);
+
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return header_offsets;
+
+    bool inComment = false;
+
+    QMap<QString,QString> *game_header = new QMap<QString,QString>();
+    qint64 game_pos = -1;
+
+    QTextCodec *codec = QTextCodec::codecForName(encoding);
+
+    QString line = QString("");
+    qint64 last_pos = file.pos();
+
+    qDebug() << "before while loop";
+    int i= 0;
+
+    QByteArray raw_line;
+
+    while(!file.atEnd()) {
+        i++;
+        raw_line = file.readLine();
+        line = codec->toUnicode(raw_line);
+
+        if(i%1000==0) {
+            qDebug() << "read next line: " << i;
+        }
+        // skip comments
+        if(line.startsWith("%")) {
+            raw_line = file.readLine();
+            line = codec->toUnicode(raw_line);
+            continue;
+        }
+
+        if(!inComment && line.startsWith("[")) {
+            QRegularExpressionMatch match_t = TAG_REGEX.match(line);
+
+            if(match_t.hasMatch()) {
+
+                if(game_pos == -1) {
+                    game_header->insert("Event","?");
+                    game_header->insert("Site","?");
+                    game_header->insert("Date","????.??.??");
+                    game_header->insert("Round","?");
+                    game_header->insert("White","?");
+                    game_header->insert("Black","?");
+                    game_header->insert("Result","*");
+
+                    game_pos = last_pos;
+                }
+
+                QString tag = match_t.captured(1);
+                QString value = match_t.captured(2);
+
+                game_header->insert(tag,value);
+
+                last_pos = file.pos();
+                // line = in.readLine();
+                raw_line = file.readLine();
+                line = codec->toUnicode(raw_line);
+                continue;
+            }
+        }
+        if((!inComment && line.contains("{"))
+                || (inComment && line.contains("}"))) {
+            inComment = line.lastIndexOf("{") > line.lastIndexOf("}");
+        }
+
+        if(game_pos != -1) {
+            HeaderOffset *ho = new HeaderOffset();
+            ho->headers = game_header;
+            ho->offset = game_pos;
+
+            header_offsets->append(ho);
+            game_pos = -1;
+            game_header = new QMap<QString,QString>();
+        }
+
+        last_pos = file.pos();
+        raw_line = file.readLine();
+        line = codec->toUnicode(raw_line);
+
+    }
+    // for the last game
+    if(game_pos != -1) {
+        HeaderOffset *ho = new HeaderOffset();
+        ho->headers = game_header;
+        ho->offset = game_pos;
+
+        header_offsets->append(ho);
+        game_pos = -1;
+        game_header = new QMap<QString,QString>();
+    }
+
+    return header_offsets;
+}
+
+
 QString* PgnReader::readFileIntoString(const QString &filename, const char* encoding) {
 
     QFile file(filename);

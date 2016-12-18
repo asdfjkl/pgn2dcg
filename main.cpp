@@ -56,7 +56,42 @@ int main(int argc, char *argv[])
     const char* encoding = pgnReader->detect_encoding(pgnFileName);
 
     std::cout << "scanning headers... " << std::endl;
-    QList<chess::HeaderOffset*> *headers = pgnReader->scan_headers(pgnFileName, encoding);
+    QMap<QString, quint32> *names = new QMap<QString, quint32>();
+    QMap<QString, quint32> *sites = new QMap<QString, quint32>();
+
+    chess::HeaderOffset* header = new chess::HeaderOffset();
+    //pgnReader->scan_headers_fast(pgnFileName, encoding);
+    quint64 offset = 0;
+    quint64 size = pgnFile.size();
+    bool stop = false;
+    while(!stop) {
+        qDebug() << "@" << (offset) << "/" << size;
+        int res = pgnReader->readNextHeader(pgnFileName, encoding, &offset, header);
+        if(res < 0) {
+            stop = true;
+        }
+        // just store site and name now
+        if(header->headers != 0) {
+            if(header->headers->contains("Site")) {
+                sites->insert(header->headers->value("Site"), 0);
+            }
+            if(header->headers->contains("White")) {
+                names->insert(header->headers->value("White"), 0);
+            }
+            if(header->headers->contains("Black")) {
+                names->insert(header->headers->value("Black"), 0);
+            }
+        }
+        //qDebug() << "Event: " << header->headers->value("Event");
+        //qDebug() << "Offset: " << header->offset;
+        header->headers->clear();
+        if(header->headers!=0) {
+           // delete header->headers;
+        }
+    }
+    qDebug() << "scanned headers FINISHED";
+
+    /*
     QMap<QString, quint32> *names = new QMap<QString, quint32>();
     QMap<QString, quint32> *sites = new QMap<QString, quint32>();
     for(int i=0; i<headers->size();i++) {
@@ -167,7 +202,7 @@ int main(int argc, char *argv[])
 
       if(fnGames.open(QFile::WriteOnly)) {
         QDataStream sg(&fnGames);
-        QByteArray magicGamesString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x62");
+        QByteArray magicGamesString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x67");
         sg.writeRawData(magicGamesString, magicGamesString.length());
 
         for(int i=0;i<headers->size();i++) {
@@ -261,7 +296,6 @@ int main(int argc, char *argv[])
       fnGames.close();
     }
     fnIndex.close();
-
-
+*/
     return 0;
 }

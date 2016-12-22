@@ -34,13 +34,14 @@ Game::Game() {
 
     this->wasEcoClassified = false;
     this->ecoInfo = new EcoInfo{"",""};
-
 }
 
 Game::~Game() {
+    this->headers->clear();
     delete this->headers;
     this->delBelow(this->root);
     delete this->root;
+    delete this->ecoInfo;
 }
 
 GameNode* Game::getRootNode() {

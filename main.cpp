@@ -65,10 +65,12 @@ int main(int argc, char *argv[])
     quint64 size = pgnFile.size();
     bool stop = false;
     while(!stop) {
-        qDebug() << "@" << (offset) << "/" << size;
+        qDebug() << "parsing pgn@" << (offset) << "/" << size;
         int res = pgnReader->readNextHeader(pgnFileName, encoding, &offset, header);
+        qDebug() << "after res";
         if(res < 0) {
             stop = true;
+            continue;
         }
         // just store site and name now
         if(header->headers != 0) {
@@ -82,40 +84,16 @@ int main(int argc, char *argv[])
                 names->insert(header->headers->value("Black"), 0);
             }
         }
-        //qDebug() << "Event: " << header->headers->value("Event");
-        //qDebug() << "Offset: " << header->offset;
+        qDebug() << "Event: " << header->headers->value("Event");
+        qDebug() << "Offset: " << header->offset;
         header->headers->clear();
         if(header->headers!=0) {
-           // delete header->headers;
+           delete header->headers;
         }
     }
     qDebug() << "scanned headers FINISHED";
 
-    /*
-    QMap<QString, quint32> *names = new QMap<QString, quint32>();
-    QMap<QString, quint32> *sites = new QMap<QString, quint32>();
-    for(int i=0; i<headers->size();i++) {
-        std::cout << "converting game " << (i+1) << " of " << headers->size() << std::endl;
-        chess::Game *gi = pgnReader->readGameFromFile(pgnFileName, encoding, headers->value(i)->offset);
-        QString whitePlayer = gi->headers->value("White");
-        QString blackPlayer = gi->headers->value("Black");
-        QString site = gi->headers->value("Site");
-        // add white player name
-        // some name normalization could take place here
-        if(!names->contains(whitePlayer)) {
-            names->insert(whitePlayer, 0);
-        }
-        // add black player name
-        if(!names->contains(blackPlayer)) {
-            names->insert(blackPlayer, 0);
-        }
-        // add site name
-        if(!sites->contains(site)) {
-            sites->insert(site, 0);
-        }
-        delete gi;
-    }
-
+    // now write down sites and names
     // write names into file
     QString fnNamesString = pgnFileName.left(pgnFileName.size()-3).append("dcn");
     QFile fnNames(fnNamesString);
@@ -187,6 +165,12 @@ int main(int argc, char *argv[])
 
 
     // now save everything
+    delete header;
+    header = new chess::HeaderOffset();
+    offset = 0;
+    size = pgnFile.size();
+    stop = false;
+
     chess::DcgWriter *dcgWriter = new chess::DcgWriter();
 
     QString fnIndexString = pgnFileName.left(pgnFileName.size()-3).append("dci");
@@ -205,36 +189,42 @@ int main(int argc, char *argv[])
         QByteArray magicGamesString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x67");
         sg.writeRawData(magicGamesString, magicGamesString.length());
 
-        for(int i=0;i<headers->size();i++) {
-
-            chess::HeaderOffset *header_i = headers->at(i);
+        while(!stop) {
+            qDebug() << "saving dcg@" << (offset) << "/" << size;
+            int res = pgnReader->readNextHeader(pgnFileName, encoding, &offset, header);
+            qDebug() << "res: " << res;
+            if(res < 0) {
+                stop = true;
+                continue;
+            }
+            qDebug() << "readNextHeader ok";
             // first write index entry
             // status
             si << quint8(0x00);
             // game offset
             si << quint64(fnGames.pos());
             // white offset
-            QString white = header_i->headers->value("White");
+            QString white = header->headers->value("White");
             quint32 whiteOffset = names->value(white);
             si << whiteOffset;
             // black offset
-            QString black = header_i->headers->value("Black");
+            QString black = header->headers->value("Black");
             quint32 blackOffset = names->value(black);
             si << blackOffset;
             // round
-            quint32 round = header_i->headers->value("Round").toUInt();
+            quint32 round = header->headers->value("Round").toUInt();
             si << round;
             // site offset
-            quint32 site_offset = sites->value(header_i->headers->value("Site"));
+            quint32 site_offset = sites->value(header->headers->value("Site"));
             si << site_offset;
             // elo white
-            quint16 elo_white = header_i->headers->value("Elo White").toUInt();
+            quint16 elo_white = header->headers->value("Elo White").toUInt();
             si << elo_white;
-            quint16 elo_black = header_i->headers->value("Elo White").toUInt();
+            quint16 elo_black = header->headers->value("Elo White").toUInt();
             si << elo_black;
             // result
-            if(header_i->headers->contains("Result")) {
-                QString res = header_i->headers->value("Result");
+            if(header->headers->contains("Result")) {
+                QString res = header->headers->value("Result");
                 if(res == "1-0") {
                     si << 0x01;
                 } else if(res == "0-1") {
@@ -248,15 +238,15 @@ int main(int argc, char *argv[])
                 si << 0x00;
             }
             // ECO
-            if(header_i->headers->contains("ECO")) {
-                QByteArray eco = header_i->headers->value("ECO").toUtf8();
+            if(header->headers->contains("ECO")) {
+                QByteArray eco = header->headers->value("ECO").toUtf8();
                 si.writeRawData(eco, eco.length());
             } else {
                 si << 0x00 << 0x00 << 0x00;
             }
             // parse date
-            if(header_i->headers->contains("Date")) {
-                QString date = header_i->headers->value("Date");
+            if(header->headers->contains("Date")) {
+                QString date = header->headers->value("Date");
                 // try to parse the date
                 quint16 year = 0;
                 quint8 month = 0;
@@ -286,16 +276,28 @@ int main(int argc, char *argv[])
             } else {
                 si << 0x00 << 0x00 << 0x00 << 0x00;
             }
-            chess::Game *g = pgnReader->readGameFromFile(pgnFileName, encoding, header_i->offset);
-            QByteArray *g_enc = dcgWriter->encodeGame(g);
+            qDebug() << "just before reading back file";
+            chess::Game *g = pgnReader->readGameFromFile(pgnFileName, encoding, header->offset);
+            qDebug() << "READ file ok";
+            QByteArray *g_enc = dcgWriter->encodeGame(g); //"<<<<<<<<<<<<<<<<<<<<<< this is the cause of mem acc fault"
+            qDebug() << "enc ok";
             sg.writeRawData(*g_enc, g_enc->length());
-
+            delete g_enc;
+            header->headers->clear();
+            if(header->headers!=0) {
+               delete header->headers;
+            }
+            delete g;
         }
 
       }
       fnGames.close();
     }
     fnIndex.close();
-*/
+    delete header;
+    delete pgnReader;
+    delete dcgWriter;
+    delete names;
+    delete sites;
     return 0;
 }

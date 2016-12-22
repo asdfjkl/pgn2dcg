@@ -1,5 +1,6 @@
 #include "dcgwriter.h"
 #include "assert.h"
+#include <QDebug>
 
 namespace chess {
 
@@ -9,6 +10,11 @@ namespace chess {
 DcgWriter::DcgWriter()
 {
     this->gameBytes = new QByteArray();
+}
+
+DcgWriter::~DcgWriter()
+{
+    delete this->gameBytes;
 }
 
 void DcgWriter::traverseNodes(GameNode *current) {
@@ -59,7 +65,9 @@ void DcgWriter::traverseNodes(GameNode *current) {
 }
 
 QByteArray* DcgWriter::encodeGame(Game *game) {
+    qDebug() << "encoding";
     delete this->gameBytes;
+    qDebug() << "deleted gamebytes";
     this->gameBytes = new QByteArray();
     // add fen string tag if root is not initial position
     chess::Board* root = game->getRootNode()->getBoard();
@@ -72,11 +80,12 @@ QByteArray* DcgWriter::encodeGame(Game *game) {
     } else {
         this->gameBytes->append((char) (0x00));
     }
+    qDebug() << "before traversal";
     this->traverseNodes(game->getRootNode());
     // prepend length
     int l = this->gameBytes->size();
     this->prependLength(l);
-    return this->gameBytes;
+    return new QByteArray(*this->gameBytes);
 }
 
 void DcgWriter::appendMove(Move *move) {

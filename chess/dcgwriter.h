@@ -11,8 +11,10 @@ class DcgWriter
 {
 public:
     DcgWriter();
+    ~DcgWriter();
     QByteArray* encodeGame(Game *game);
     void traverseNodes(GameNode *current);
+    void reset();
 
     void appendMove(Move *move);
     void appendLength(int len);

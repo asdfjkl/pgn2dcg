@@ -94,7 +94,7 @@ QList<HeaderOffset*>* PgnReader::scan_headers(const QString &filename, const cha
     QString line = QString("");
     qint64 last_pos = in.pos();
 
-    qDebug() << "before while loop";
+    //qDebug() << "before while loop";
     int i= 0;
     while(!in.atEnd()) {
 
@@ -181,6 +181,7 @@ int PgnReader::readNextHeader(const QString &filename, const char* encoding,
 
     bool inComment = false;
 
+    qDebug() << "kk0";
     QMap<QString,QString> *game_header = new QMap<QString,QString>();
     qint64 game_pos = -1;
 
@@ -190,6 +191,7 @@ int PgnReader::readNextHeader(const QString &filename, const char* encoding,
     qint64 last_pos = file.pos();
 
     QByteArray raw_line;
+    //qDebug() << "kk";
 
     // first seek until we have new tags
     bool foundTag = false;
@@ -241,6 +243,7 @@ int PgnReader::readNextHeader(const QString &filename, const char* encoding,
         headerOffset->offset = game_pos;
         //headerOffset = ho;
     } else {
+        delete game_header;
         return -1;
     }
     // set offset to last encountered line
@@ -503,6 +506,7 @@ Game* PgnReader::readGameFromFile(const QString &filename, const char* encoding,
 
 Game* PgnReader::readGame(QTextStream& in) {
 
+    //qDebug() << "read game 1";
     Game* g = new Game();
     QString starting_fen = QString("");
 
@@ -660,15 +664,17 @@ Game* PgnReader::readGame(QTextStream& in) {
                 } else if(token ==QString("0-0-0")) {
                     token = QString("O-O-O");
                 }
+                Move *m = 0;
+                GameNode *next = new GameNode();
+                Board *b_next = 0;
                 try {
                     Board *b = current->getBoard();
                     //qDebug() << "token: " << token;
-                    Move *m = new Move(b->parse_san(token));
+                    m = new Move(b->parse_san(token));
                     //qDebug() << "uci: " << m->uci_string;
                     //qDebug() << "san:" << b->san(*m);
                     //qDebug() << "--";
-                    Board *b_next = b->copy_and_apply(*m);
-                    GameNode *next = new GameNode();
+                    b_next = b->copy_and_apply(*m);
                     next->setMove(m);
                     next->setBoard(b_next);
                     next->setParent(current);
@@ -681,7 +687,15 @@ Game* PgnReader::readGame(QTextStream& in) {
                     }*/
                 }
                 catch(std::invalid_argument a) {
-                    // just silently fail...
+                    // just silently fail... but first clean up
+                    if(m!=0) {
+                        //delete m;
+                    }
+                    //delete next;
+                    if(b_next!=0) {
+                        //delete b_next;
+                    }
+                    //delete game_stack;
                     std::cout << a.what() << std::endl;
                     throw std::invalid_argument("unable to parse game fen@ " + token.toStdString());
                 }
@@ -691,6 +705,7 @@ Game* PgnReader::readGame(QTextStream& in) {
             line = in.readLine();
         }
     }
+    delete game_stack;
     return g;
 }
 }

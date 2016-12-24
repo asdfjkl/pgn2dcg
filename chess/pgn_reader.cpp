@@ -499,6 +499,7 @@ Game* PgnReader::readGameFromFile(const QString &filename, const char* encoding,
         file.close();
         return g;
     } catch(std::invalid_argument e) {
+        qDebug() << "stuff happened";
         file.close();
         throw e;
     }
@@ -537,16 +538,20 @@ Game* PgnReader::readGame(QTextStream& in) {
 
         line = in.readLine();
     }
+    qDebug() << "tags ok";
     // set starting fen, if available
     if(!starting_fen.isEmpty()) {
         chess::Board *b_fen = new chess::Board(starting_fen);
         if(!b_fen->is_consistent()) {
+            if(b_fen != 0) {
+                delete b_fen;
+            }
             throw std::invalid_argument("starting fen position is not consistent");
         } else {
             current->setBoard(b_fen);
         }
     }
-
+    qDebug() << "initial board ok";
     // Get the next non-empty line.
     while(line.trimmed() == QString("") && !line.isEmpty()) {
         line = in.readLine();
@@ -555,11 +560,15 @@ Game* PgnReader::readGame(QTextStream& in) {
     bool foundContent = false;
     bool last_line = false;
     while(!in.atEnd() || !last_line || !line.isEmpty()) {
+        qDebug() << line;
+        qDebug() << +(line.isEmpty());
         if(in.atEnd()) {
             last_line = true;
+            qDebug() << "last line";
         }
         bool readNextLine = true;
         if(line.trimmed().isEmpty() && foundContent) {
+            delete game_stack;
             return g;
         }
         QRegularExpressionMatchIterator i = MOVETEXT_REGEX.globalMatch(line);
@@ -603,6 +612,7 @@ Game* PgnReader::readGame(QTextStream& in) {
                 if(!line.trimmed().isEmpty()) {
                     readNextLine = false;
                 }
+                delete comment_lines;
                 break;
             }
             else if(token.startsWith("$")) {
@@ -695,7 +705,10 @@ Game* PgnReader::readGame(QTextStream& in) {
                     if(b_next!=0) {
                         //delete b_next;
                     }
-                    //delete game_stack;
+                    qDebug() << "error catch";
+                    delete g;
+                    game_stack->clear();
+                    delete game_stack;
                     std::cout << a.what() << std::endl;
                     throw std::invalid_argument("unable to parse game fen@ " + token.toStdString());
                 }
@@ -705,6 +718,8 @@ Game* PgnReader::readGame(QTextStream& in) {
             line = in.readLine();
         }
     }
+    qDebug() << "standard return";
+    game_stack->clear();
     delete game_stack;
     return g;
 }

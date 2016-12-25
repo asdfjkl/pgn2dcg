@@ -65,9 +65,9 @@ void DcgWriter::traverseNodes(GameNode *current) {
 }
 
 QByteArray* DcgWriter::encodeGame(Game *game) {
-    qDebug() << "encoding";
+    //qDebug() << "encoding";
     delete this->gameBytes;
-    qDebug() << "deleted gamebytes";
+    //qDebug() << "deleted gamebytes";
     this->gameBytes = new QByteArray();
     // add fen string tag if root is not initial position
     chess::Board* root = game->getRootNode()->getBoard();
@@ -80,7 +80,7 @@ QByteArray* DcgWriter::encodeGame(Game *game) {
     } else {
         this->gameBytes->append((char) (0x00));
     }
-    qDebug() << "before traversal";
+    //qDebug() << "before traversal";
     this->traverseNodes(game->getRootNode());
     // prepend length
     int l = this->gameBytes->size();

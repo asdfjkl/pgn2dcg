@@ -7,6 +7,7 @@
 #include <QDebug>
 #include "chess/pgn_reader.h"
 #include "chess/dcgwriter.h"
+#include "chess/database.h"
 
 int main(int argc, char *argv[])
 {
@@ -47,51 +48,15 @@ int main(int argc, char *argv[])
         exit(0);
     }
 
-    // first scan pgn file, extract all names and sites, and but them
-    // into Maps (Site, offset) and (Name, offset)
-    std::cout << "opening " << pgnFileName.toStdString() << std::endl;
-
-    chess::PgnReader *pgnReader = new chess::PgnReader();
-    // guess the encoding of the pgn file
-    const char* encoding = pgnReader->detect_encoding(pgnFileName);
-
-    std::cout << "scanning headers... " << std::endl;
+    // inser db call here
+    QString test = QString("foo");
+    chess::Database *database = new chess::Database(test);
     QMap<QString, quint32> *names = new QMap<QString, quint32>();
     QMap<QString, quint32> *sites = new QMap<QString, quint32>();
+    database->importPgnNamesSites(pgnFileName, names, sites);
 
-    chess::HeaderOffset* header = new chess::HeaderOffset();
-    //pgnReader->scan_headers_fast(pgnFileName, encoding);
-    quint64 offset = 0;
-    quint64 size = pgnFile.size();
-    bool stop = false;
-    while(!stop) {
-        qDebug() << "parsing pgn@" << (offset) << "/" << size;
-        int res = pgnReader->readNextHeader(pgnFileName, encoding, &offset, header);
-        qDebug() << "after res";
-        if(res < 0) {
-            stop = true;
-            continue;
-        }
-        // just store site and name now
-        if(header->headers != 0) {
-            if(header->headers->contains("Site")) {
-                sites->insert(header->headers->value("Site"), 0);
-            }
-            if(header->headers->contains("White")) {
-                names->insert(header->headers->value("White"), 0);
-            }
-            if(header->headers->contains("Black")) {
-                names->insert(header->headers->value("Black"), 0);
-            }
-        }
-        qDebug() << "Event: " << header->headers->value("Event");
-        qDebug() << "Offset: " << header->offset;
-        header->headers->clear();
-        if(header->headers!=0) {
-           delete header->headers;
-        }
-    }
-    qDebug() << "scanned headers FINISHED";
+
+    //qDebug() << "scanned headers FINISHED";
 
     // now write down sites and names
     // write names into file
@@ -165,11 +130,10 @@ int main(int argc, char *argv[])
 
 
     // now save everything
-    delete header;
-    header = new chess::HeaderOffset();
-    offset = 0;
-    size = pgnFile.size();
-    stop = false;
+    chess::HeaderOffset *header = new chess::HeaderOffset();
+    quint64 offset = 0;
+    quint64 size = pgnFile.size();
+    bool stop = false;
 
     chess::DcgWriter *dcgWriter = new chess::DcgWriter();
 
@@ -179,6 +143,8 @@ int main(int argc, char *argv[])
     QString fnGamesString = pgnFileName.left(pgnFileName.size()-3).append("dcg");
     QFile fnGames(fnGamesString);
 
+    chess::PgnReader *pgnReader = new chess::PgnReader();
+    const char* encoding = pgnReader->detect_encoding(pgnFileName);
     if(fnIndex.open(QFile::WriteOnly)) {
       QDataStream si(&fnIndex);
       QByteArray magicIndexString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x69");
@@ -189,15 +155,18 @@ int main(int argc, char *argv[])
         QByteArray magicGamesString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x67");
         sg.writeRawData(magicGamesString, magicGamesString.length());
 
+        std::cout << "\nsaving games: 0/"<< size;
+        int i = 0;
         while(!stop) {
-            qDebug() << "saving dcg@" << (offset) << "/" << size;
+            if(i%100==0) {
+                std::cout << "\rsaving games: "<<offset<< "/"<<size << std::flush;
+            }
+            i++;
             int res = pgnReader->readNextHeader(pgnFileName, encoding, &offset, header);
-            qDebug() << "res: " << res;
             if(res < 0) {
                 stop = true;
                 continue;
             }
-            qDebug() << "readNextHeader ok";
             // first write index entry
             // status
             si << quint8(0x00);
@@ -276,11 +245,11 @@ int main(int argc, char *argv[])
             } else {
                 si << 0x00 << 0x00 << 0x00 << 0x00;
             }
-            qDebug() << "just before reading back file";
+            //qDebug() << "just before reading back file";
             chess::Game *g = pgnReader->readGameFromFile(pgnFileName, encoding, header->offset);
-            qDebug() << "READ file ok";
+            //qDebug() << "READ file ok";
             QByteArray *g_enc = dcgWriter->encodeGame(g); //"<<<<<<<<<<<<<<<<<<<<<< this is the cause of mem acc fault"
-            qDebug() << "enc ok";
+            //qDebug() << "enc ok";
             sg.writeRawData(*g_enc, g_enc->length());
             delete g_enc;
             header->headers->clear();
@@ -289,7 +258,7 @@ int main(int argc, char *argv[])
             }
             delete g;
         }
-
+        std::cout << "\rsaving games: "<<size<< "/"<<size << std::endl;
       }
       fnGames.close();
     }
@@ -299,5 +268,6 @@ int main(int argc, char *argv[])
     delete dcgWriter;
     delete names;
     delete sites;
+    delete database;
     return 0;
 }

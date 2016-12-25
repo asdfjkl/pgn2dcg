@@ -181,7 +181,7 @@ int PgnReader::readNextHeader(const QString &filename, const char* encoding,
 
     bool inComment = false;
 
-    qDebug() << "kk0";
+    //qDebug() << "kk0";
     QMap<QString,QString> *game_header = new QMap<QString,QString>();
     qint64 game_pos = -1;
 
@@ -516,7 +516,7 @@ Game* PgnReader::readGame(QTextStream& in) {
     GameNode* current = g->getRootNode();
 
     QString line = in.readLine();
-    qDebug() << "line @ offset: " << line;
+    //qDebug() << "line @ offset: " << line;
     while (!in.atEnd()) {
         if(line.startsWith("%") || line.isEmpty()) {
             line = in.readLine();
@@ -538,7 +538,7 @@ Game* PgnReader::readGame(QTextStream& in) {
 
         line = in.readLine();
     }
-    qDebug() << "tags ok";
+    //qDebug() << "tags ok";
     // set starting fen, if available
     if(!starting_fen.isEmpty()) {
         chess::Board *b_fen = new chess::Board(starting_fen);
@@ -551,7 +551,7 @@ Game* PgnReader::readGame(QTextStream& in) {
             current->setBoard(b_fen);
         }
     }
-    qDebug() << "initial board ok";
+    //qDebug() << "initial board ok";
     // Get the next non-empty line.
     while(line.trimmed() == QString("") && !line.isEmpty()) {
         line = in.readLine();
@@ -560,11 +560,11 @@ Game* PgnReader::readGame(QTextStream& in) {
     bool foundContent = false;
     bool last_line = false;
     while(!in.atEnd() || !last_line || !line.isEmpty()) {
-        qDebug() << line;
-        qDebug() << +(line.isEmpty());
+        //qDebug() << line;
+        //qDebug() << +(line.isEmpty());
         if(in.atEnd()) {
             last_line = true;
-            qDebug() << "last line";
+            //qDebug() << "last line";
         }
         bool readNextLine = true;
         if(line.trimmed().isEmpty() && foundContent) {
@@ -718,7 +718,7 @@ Game* PgnReader::readGame(QTextStream& in) {
             line = in.readLine();
         }
     }
-    qDebug() << "standard return";
+    //qDebug() << "standard return";
     game_stack->clear();
     delete game_stack;
     return g;

@@ -13,6 +13,7 @@ public:
     DcgWriter();
     ~DcgWriter();
     QByteArray* encodeGame(Game *game);
+    QByteArray* encodeHeader();
     void traverseNodes(GameNode *current);
     void reset();
 

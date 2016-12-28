@@ -2,6 +2,8 @@
 #define DATABASE_H
 
 #include <QString>
+#include "chess/pgn_reader.h"
+#include "chess/dcgwriter.h"
 
 namespace chess {
 
@@ -9,6 +11,7 @@ class Database
 {
 public:
     Database(QString &filename);
+    ~Database();
 
     void importPgnAndSave(QString &pgnfile);
     void saveToFile();
@@ -36,6 +39,8 @@ private:
     void importPgnAppendSites(QMap<QString, quint32> *sites);
     void importPgnAppendGamesIndices(QString &pgnfile, QMap<QString, quint32> *names, QMap<QString, quint32> *sites);
 
+    chess::DcgWriter *dcgwriter;
+    chess::PgnReader *pgnreader;
 
 };
 

@@ -64,6 +64,10 @@ int main(int argc, char *argv[])
             || dbFileName.endsWith(".dcn")) {
         dbFileName = dbFileName.left(dbFileName.size()-4);
     }
+    if(dbFileName.isEmpty()) {
+        std::cout << "Error: no output Database filename given." << std::endl;
+        exit(0);
+    }
 
     chess::Database *database = new chess::Database(dbFileName);
     database->importPgnAndSave(pgnFileName);

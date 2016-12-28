@@ -14,12 +14,23 @@ public:
     void saveToFile();
     // scans all headers in pgn file and reads names and sites into passed maps
     void importPgnNamesSites(QString &pgnfile, QMap<QString, quint32> *names, QMap<QString, quint32> *sites);
+    void importPgnAppendNames(QMap<QString, quint32> *names);
+    void importPgnAppendSites(QMap<QString, quint32> *sites);
+    void importPgnAppendGamesIndices(QString &pgnfile, QMap<QString, quint32> *names, QMap<QString, quint32> *sites);
 
 
 
 private:
     // filename is only the base, always append *.dcs, *.dcn, *.dcg, *.dci
-    QString filename;
+    QString filenameBase;
+    QString filenameNames;
+    QString filenameSites;
+    QString filenameIndex;
+    QString filenameGames;
+    QByteArray magicNameString;
+    QByteArray magicIndexString;
+    QByteArray magicGamesString;
+    QByteArray magicSitesString;
     void writeSites();
     void writeNames();
     void writeIndex();

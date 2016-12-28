@@ -39,7 +39,7 @@ private:
     void importPgnAppendSites(QMap<QString, quint32> *sites);
     void importPgnAppendGamesIndices(QString &pgnfile, QMap<QString, quint32> *names, QMap<QString, quint32> *sites);
 
-    chess::DcgEncoder *dcgwriter;
+    chess::DcgEncoder *dcgencoder;
     chess::PgnReader *pgnreader;
 
 };

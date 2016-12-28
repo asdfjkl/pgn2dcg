@@ -1,6 +1,7 @@
 #include "dcgencoder.h"
 #include "assert.h"
 #include <QDebug>
+#include "chess/byteutil.h"
 
 namespace chess {
 
@@ -100,45 +101,45 @@ void DcgEncoder::appendMove(Move *move) {
         if(move->promotion_piece != 0) {
             move_binary += quint16(move->promotion_piece << 12);
         }
-        this->append_as_uint16(this->gameBytes, move_binary);
+        ByteUtil::append_as_uint16(this->gameBytes, move_binary);
     }
 }
 
 void DcgEncoder::appendLength(int len) {
     if(len >= 0 && len < 127) {
-        this->append_as_uint8(this->gameBytes, quint8(len));
+        ByteUtil::append_as_uint8(this->gameBytes, quint8(len));
     } else if(len >= 0 && len < 255) {
-        this->append_as_uint8(this->gameBytes, quint8(0x81));
-        this->append_as_uint8(this->gameBytes, quint8(len));
+        ByteUtil::append_as_uint8(this->gameBytes, quint8(0x81));
+        ByteUtil::append_as_uint8(this->gameBytes, quint8(len));
     } else if(len >= 0 && len < 65535) {
-        this->append_as_uint8(this->gameBytes, quint8(0x82));
-        this->append_as_uint16(this->gameBytes, quint16(len));
+        ByteUtil::append_as_uint8(this->gameBytes, quint8(0x82));
+        ByteUtil::append_as_uint16(this->gameBytes, quint16(len));
     } else if(len >= 0 && len < 16777215) {
-        this->append_as_uint8(this->gameBytes, quint8(0x83));
-        this->append_as_uint8(this->gameBytes, quint8(len >> 16));
-        this->append_as_uint16(this->gameBytes, quint16(len));
+        ByteUtil::append_as_uint8(this->gameBytes, quint8(0x83));
+        ByteUtil::append_as_uint8(this->gameBytes, quint8(len >> 16));
+        ByteUtil::append_as_uint16(this->gameBytes, quint16(len));
     } else if(len >= 0 && len < 4294967) {
-        this->append_as_uint8(this->gameBytes, quint8(0x84));
-        this->append_as_uint32(this->gameBytes, quint32(len));
+        ByteUtil::append_as_uint8(this->gameBytes, quint8(0x84));
+        ByteUtil::append_as_uint32(this->gameBytes, quint32(len));
     }
 }
 
 void DcgEncoder::prependLength(int len) {
     if(len >= 0 && len < 127) {
-        this->prepend_as_uint8(this->gameBytes, quint8(len));
+        ByteUtil::prepend_as_uint8(this->gameBytes, quint8(len));
     } else if(len >= 0 && len < 255) {
-        this->prepend_as_uint8(this->gameBytes, quint8(0x81));
-        this->prepend_as_uint8(this->gameBytes, quint8(len));
+        ByteUtil::prepend_as_uint8(this->gameBytes, quint8(0x81));
+        ByteUtil::prepend_as_uint8(this->gameBytes, quint8(len));
     } else if(len >= 0 && len < 65535) {
-        this->prepend_as_uint8(this->gameBytes, quint8(0x82));
-        this->prepend_as_uint16(this->gameBytes, quint16(len));
+        ByteUtil::prepend_as_uint8(this->gameBytes, quint8(0x82));
+        ByteUtil::prepend_as_uint16(this->gameBytes, quint16(len));
     } else if(len >= 0 && len < 16777215) {
-        this->prepend_as_uint8(this->gameBytes, quint8(0x83));
-        this->prepend_as_uint8(this->gameBytes, quint8(len >> 16));
-        this->prepend_as_uint16(this->gameBytes, quint16(len));
+        ByteUtil::prepend_as_uint8(this->gameBytes, quint8(0x83));
+        ByteUtil::prepend_as_uint8(this->gameBytes, quint8(len >> 16));
+        ByteUtil::prepend_as_uint16(this->gameBytes, quint16(len));
     } else if(len >= 0 && len < 4294967) {
-        this->prepend_as_uint8(this->gameBytes, quint8(0x84));
-        this->prepend_as_uint32(this->gameBytes, quint32(len));
+        ByteUtil::prepend_as_uint8(this->gameBytes, quint8(0x84));
+        ByteUtil::prepend_as_uint32(this->gameBytes, quint32(len));
     }
 }
 
@@ -172,45 +173,5 @@ void DcgEncoder::appendStartTag() {
 void DcgEncoder::appendEndTag() {
     this->gameBytes->append(quint8(0x85));
 }
-
-void DcgEncoder::append_as_uint8(QByteArray* ba, quint8 r) {
-    ba->append(r);
-}
-
-void DcgEncoder::append_as_uint16(QByteArray* ba, quint16 r) {
-    ba->append(quint8(r>>8));
-    ba->append(quint8(r));
-}
-
-void DcgEncoder::append_as_uint32(QByteArray* ba, quint32 r) {
-    this->append_as_uint16(ba, quint16(r>>16));
-    this->append_as_uint16(ba, quint16(r));
-}
-
-void DcgEncoder::append_as_uint64(QByteArray* ba, quint64 r) {
-    this->append_as_uint32(ba, quint32(r>>32));
-    this->append_as_uint32(ba, quint32(r));
-}
-
-
-void DcgEncoder::prepend_as_uint8(QByteArray* ba, quint8 r) {
-    ba->prepend(r);
-}
-
-void DcgEncoder::prepend_as_uint16(QByteArray* ba, quint16 r) {
-    ba->prepend(quint8(r>>8));
-    ba->prepend(quint8(r));
-}
-
-void DcgEncoder::prepend_as_uint32(QByteArray* ba, quint32 r) {
-    this->prepend_as_uint16(ba, quint16(r>>16));
-    this->prepend_as_uint16(ba, quint16(r));
-}
-
-void DcgEncoder::prepend_as_uint64(QByteArray* ba, quint64 r) {
-    this->prepend_as_uint32(ba, quint32(r>>32));
-    this->prepend_as_uint32(ba, quint32(r));
-}
-
 
 }

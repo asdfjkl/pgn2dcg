@@ -2,6 +2,7 @@
 #include "chess/game.h"
 #include "chess/pgn_reader.h"
 #include "chess/dcgencoder.h"
+#include "chess/byteutil.h"
 #include "assert.h"
 #include <iostream>
 #include <QFile>
@@ -20,7 +21,7 @@ chess::Database::Database(QString &filename)
     this->magicSitesString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x73");
     this->offsetNames = new QMap<quint32, QString>();
     this->offsetSites = new QMap<quint32, QString>();
-    this->dcgwriter = new chess::DcgEncoder();
+    this->dcgencoder = new chess::DcgEncoder();
     this->pgnreader = new chess::PgnReader();
 }
 
@@ -30,7 +31,7 @@ chess::Database::~Database()
     this->offsetSites->clear();
     delete this->offsetNames;
     delete this->offsetSites;
-    delete this->dcgwriter;
+    delete this->dcgencoder;
     delete this->pgnreader;
 }
 
@@ -225,42 +226,42 @@ void chess::Database::importPgnAppendGamesIndices(QString &pgnfile, QMap<QString
                 QByteArray iEntry;
                 // first write index entry
                 // status
-                dcgwriter->append_as_uint8(&iEntry, quint8(0x00));
+                ByteUtil::append_as_uint8(&iEntry, quint8(0x00));
                 // game offset
-                dcgwriter->append_as_uint64(&iEntry, fnGames.pos());
+                ByteUtil::append_as_uint64(&iEntry, fnGames.pos());
                 // white offset
                 QString white = header->headers->value("White");
                 quint32 whiteOffset = names->value(white);
-                dcgwriter->append_as_uint32(&iEntry, whiteOffset);
+                ByteUtil::append_as_uint32(&iEntry, whiteOffset);
                 // black offset
                 QString black = header->headers->value("Black");
                 quint32 blackOffset = names->value(black);
-                dcgwriter->append_as_uint32(&iEntry, blackOffset);
+                ByteUtil::append_as_uint32(&iEntry, blackOffset);
                 // round
                 quint16 round = header->headers->value("Round").toUInt();
-                dcgwriter->append_as_uint16(&iEntry, round);
+                ByteUtil::append_as_uint16(&iEntry, round);
                 // site offset
                 quint32 site_offset = sites->value(header->headers->value("Site"));
-                dcgwriter->append_as_uint32(&iEntry, site_offset);
+                ByteUtil::append_as_uint32(&iEntry, site_offset);
                 // elo white
                 quint16 elo_white = header->headers->value("Elo White").toUInt();
-                dcgwriter->append_as_uint16(&iEntry, elo_white);
+                ByteUtil::append_as_uint16(&iEntry, elo_white);
                 quint16 elo_black = header->headers->value("Elo White").toUInt();
-                dcgwriter->append_as_uint16(&iEntry, elo_black);
+                ByteUtil::append_as_uint16(&iEntry, elo_black);
                 // result
                 if(header->headers->contains("Result")) {
                     QString res = header->headers->value("Result");
                     if(res == "1-0") {
-                        dcgwriter->append_as_uint8(&iEntry, quint8(0x01));
+                        ByteUtil::append_as_uint8(&iEntry, quint8(0x01));
                     } else if(res == "0-1") {
-                        dcgwriter->append_as_uint8(&iEntry, quint8(0x02));
+                        ByteUtil::append_as_uint8(&iEntry, quint8(0x02));
                     } else if(res == "1/2-1/2") {
-                        dcgwriter->append_as_uint8(&iEntry, quint8(0x03));
+                        ByteUtil::append_as_uint8(&iEntry, quint8(0x03));
                     } else {
-                        dcgwriter->append_as_uint8(&iEntry, quint8(0x00));
+                        ByteUtil::append_as_uint8(&iEntry, quint8(0x00));
                     }
                 } else  {
-                    dcgwriter->append_as_uint8(&iEntry, quint8(0x00));
+                    ByteUtil::append_as_uint8(&iEntry, quint8(0x00));
                 }
                 // ECO
                 if(header->headers->contains("ECO")) {
@@ -296,20 +297,20 @@ void chess::Database::importPgnAppendGamesIndices(QString &pgnfile, QMap<QString
                             }
                         }
                     }
-                    dcgwriter->append_as_uint16(&iEntry, year);
-                    dcgwriter->append_as_uint8(&iEntry, month);
-                    dcgwriter->append_as_uint8(&iEntry, day);
+                    ByteUtil::append_as_uint16(&iEntry, year);
+                    ByteUtil::append_as_uint8(&iEntry, month);
+                    ByteUtil::append_as_uint8(&iEntry, day);
                 } else {
-                    dcgwriter->append_as_uint8(&iEntry, quint8(0x00));
-                    dcgwriter->append_as_uint8(&iEntry, quint8(0x00));
-                    dcgwriter->append_as_uint8(&iEntry, quint8(0x00));
+                    ByteUtil::append_as_uint8(&iEntry, quint8(0x00));
+                    ByteUtil::append_as_uint8(&iEntry, quint8(0x00));
+                    ByteUtil::append_as_uint8(&iEntry, quint8(0x00));
                 }
                 assert(iEntry.size() == 35);
                 fnIndex.write(iEntry, iEntry.length());
                 //qDebug() << "just before reading back file";
                 chess::Game *g = pgnreader->readGameFromFile(pgnfile, encoding, header->offset);
                 //qDebug() << "READ file ok";
-                QByteArray *g_enc = dcgwriter->encodeGame(g); //"<<<<<<<<<<<<<<<<<<<<<< this is the cause of mem acc fault"
+                QByteArray *g_enc = dcgencoder->encodeGame(g); //"<<<<<<<<<<<<<<<<<<<<<< this is the cause of mem acc fault"
                 //qDebug() << "enc ok";
                 fnGames.write(*g_enc, g_enc->length());
                 delete g_enc;

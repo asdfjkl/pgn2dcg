@@ -26,15 +26,7 @@ public:
     void appendStartTag();
     void appendEndTag();
 
-    void append_as_uint8(QByteArray* ba, quint8 val);
-    void append_as_uint16(QByteArray* ba, quint16 val);
-    void append_as_uint32(QByteArray* ba, quint32 val);
-    void append_as_uint64(QByteArray* ba, quint64 val);
 
-    void prepend_as_uint8(QByteArray* ba, quint8 val);
-    void prepend_as_uint16(QByteArray* ba, quint16 val);
-    void prepend_as_uint32(QByteArray* ba, quint32 val);
-    void prepend_as_uint64(QByteArray* ba, quint64 val);
 
     Game* decodeGame();
 

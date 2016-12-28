@@ -28,6 +28,12 @@ int main(int argc, char *argv[])
               QCoreApplication::translate("main", "filename."));
     parser.addOption(pgnFileOption);
 
+
+    QCommandLineOption dbFileOption(QStringList() << "o" << "out-file",
+              QCoreApplication::translate("main", "database file <database.dcg>."),
+              QCoreApplication::translate("main", "filename."));
+    parser.addOption(dbFileOption);
+
     parser.process(app);
 
     const QStringList args = parser.positionalArguments();
@@ -43,23 +49,25 @@ int main(int argc, char *argv[])
     QFile pgnFile;
     pgnFile.setFileName(pgnFileName);
     if(!pgnFile.exists()) {
+        std::cout << "Error: can't open PGN file or no PGN filename given." << std::endl;
+        exit(0);
+    }
+
+    pgnFile.setFileName(pgnFileName);
+    if(!pgnFile.exists()) {
         std::cout << "Error: can't open PGN file." << std::endl;
         exit(0);
     }
 
-    // inser db call here
-    QString baseName = pgnFileName.left(pgnFileName.size()-4);
-    chess::Database *database = new chess::Database(baseName);
-    QMap<QString, quint32> *names = new QMap<QString, quint32>();
-    QMap<QString, quint32> *sites = new QMap<QString, quint32>();
-    database->importPgnNamesSites(pgnFileName, names, sites);
+    QString dbFileName = parser.value(dbFileOption);
+    if(dbFileName.endsWith(".dcg") || dbFileName.endsWith(".dci") || dbFileName.endsWith(".dcs")
+            || dbFileName.endsWith(".dcn")) {
+        dbFileName = dbFileName.left(dbFileName.size()-4);
+    }
 
-    database->importPgnAppendSites(sites);
-    database->importPgnAppendNames(names);
-    database->importPgnAppendGamesIndices(pgnFileName, names, sites);
-
-    delete names;
-    delete sites;
+    chess::Database *database = new chess::Database(dbFileName);
+    database->importPgnAndSave(pgnFileName);
     delete database;
+
     return 0;
 }

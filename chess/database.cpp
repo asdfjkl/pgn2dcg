@@ -18,10 +18,22 @@ chess::Database::Database(QString &filename)
     this->magicIndexString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x69");
     this->magicGamesString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x67");
     this->magicSitesString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x73");
+    this->offsetNames = new QMap<quint32, QString>();
+    this->offsetSites = new QMap<quint32, QString>();
 }
 
-void chess::Database::importPgn(QString &pgnfile) {
+void chess::Database::importPgnAndSave(QString &pgnfile) {
 
+    QMap<QString, quint32> *names = new QMap<QString, quint32>();
+    QMap<QString, quint32> *sites = new QMap<QString, quint32>();
+
+    this->importPgnNamesSites(pgnfile, names, sites);
+    this->importPgnAppendSites(sites);
+    this->importPgnAppendNames(names);
+    this->importPgnAppendGamesIndices(pgnfile, names, sites);
+
+    delete names;
+    delete sites;
 }
 
 void chess::Database::importPgnNamesSites(QString &pgnfile, QMap<QString, quint32> *names, QMap<QString, quint32> *sites) {
@@ -48,15 +60,40 @@ void chess::Database::importPgnNamesSites(QString &pgnfile, QMap<QString, quint3
             stop = true;
             continue;
         }
+        // below 4294967295 is the max range val of quint32
+        // provided as default key during search. In case we get this
+        // default key as return, the current db site and name maps do not contain
+        // a value. Note that this limits the offset range of name and site
+        // file to 4294967295-1!
+        // otherwise we add the key index of the existing database map files
+        // these must then be skipped when writing the newly read sites and names
         if(header->headers != 0) {
             if(header->headers->contains("Site")) {
-                sites->insert(header->headers->value("Site"), 0);
+                QString site = header->headers->value("Site");
+                quint32 key = this->offsetSites->key(site, 4294967295);
+                if(key == 4294967295) {
+                    sites->insert(header->headers->value("Site"), 0);
+                } else {
+                    sites->insert(header->headers->value("Site"), key);
+                }
             }
             if(header->headers->contains("White")) {
-                names->insert(header->headers->value("White"), 0);
+                QString white = header->headers->value("White");
+                quint32 key = this->offsetNames->key(white, 4294967295);
+                if(key == 4294967295) {
+                    names->insert(header->headers->value("White"), 0);
+                } else {
+                    names->insert(header->headers->value("White"), key);
+                }
             }
             if(header->headers->contains("Black")) {
-                names->insert(header->headers->value("Black"), 0);
+                QString black = header->headers->value("Black");
+                quint32 key = this->offsetNames->key(black, 4294967295);
+                if(key == 4294967295) {
+                    names->insert(header->headers->value("Black"), 0);
+                } else {
+                    names->insert(header->headers->value("Black"), key);
+                }
             }
         }
         header->headers->clear();
@@ -79,6 +116,12 @@ void chess::Database::importPgnAppendNames(QMap<QString, quint32> *names) {
         }
         QList<QString> keys = names->keys();
         for (int i = 0; i < keys.length(); i++) {
+            // value != 0 means the value exists
+            // already in the existing database maps
+            quint32 ex_offset = names->value(keys.at(i));
+            if(ex_offset != 0) {
+                continue;
+            }
             QByteArray name_i = keys.at(i).toUtf8();
             // truncate if too long
             if(name_i.size() > 36) {
@@ -109,6 +152,12 @@ void chess::Database::importPgnAppendSites(QMap<QString, quint32> *sites) {
         }
         QList<QString> keys = sites->keys();
         for (int i = 0; i < keys.length(); i++) {
+            // value != 0 means the value exists
+            // already in the existing database maps
+            quint32 ex_offset = sites->value(keys.at(i));
+            if(ex_offset != 0) {
+                continue;
+            }
             QByteArray site_i = keys.at(i).toUtf8();
             // truncate if too long
             if(site_i.size() > 36) {

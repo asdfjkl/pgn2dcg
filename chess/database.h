@@ -3,7 +3,7 @@
 
 #include <QString>
 #include "chess/pgn_reader.h"
-#include "chess/dcgwriter.h"
+#include "chess/dcgencoder.h"
 
 namespace chess {
 
@@ -39,7 +39,7 @@ private:
     void importPgnAppendSites(QMap<QString, quint32> *sites);
     void importPgnAppendGamesIndices(QString &pgnfile, QMap<QString, quint32> *names, QMap<QString, quint32> *sites);
 
-    chess::DcgWriter *dcgwriter;
+    chess::DcgEncoder *dcgwriter;
     chess::PgnReader *pgnreader;
 
 };

@@ -1,4 +1,4 @@
-#include "dcgwriter.h"
+#include "dcgencoder.h"
 #include "assert.h"
 #include <QDebug>
 
@@ -7,17 +7,17 @@ namespace chess {
 // TODO: rewrite by using QDataStream. Then appending
 // is simply operator <<
 
-DcgWriter::DcgWriter()
+DcgEncoder::DcgEncoder()
 {
     this->gameBytes = new QByteArray();
 }
 
-DcgWriter::~DcgWriter()
+DcgEncoder::~DcgEncoder()
 {
     delete this->gameBytes;
 }
 
-void DcgWriter::traverseNodes(GameNode *current) {
+void DcgEncoder::traverseNodes(GameNode *current) {
     int cntVar = current->getVariations()->count();
 
     // first handle mainline move, if there are variations
@@ -64,7 +64,7 @@ void DcgWriter::traverseNodes(GameNode *current) {
     }
 }
 
-QByteArray* DcgWriter::encodeGame(Game *game) {
+QByteArray* DcgEncoder::encodeGame(Game *game) {
     //qDebug() << "encoding";
     delete this->gameBytes;
     //qDebug() << "deleted gamebytes";
@@ -88,7 +88,7 @@ QByteArray* DcgWriter::encodeGame(Game *game) {
     return new QByteArray(*this->gameBytes);
 }
 
-void DcgWriter::appendMove(Move *move) {
+void DcgEncoder::appendMove(Move *move) {
     if(move->is_null) {
         this->gameBytes->append(quint8(0x88));
     } else {
@@ -104,7 +104,7 @@ void DcgWriter::appendMove(Move *move) {
     }
 }
 
-void DcgWriter::appendLength(int len) {
+void DcgEncoder::appendLength(int len) {
     if(len >= 0 && len < 127) {
         this->append_as_uint8(this->gameBytes, quint8(len));
     } else if(len >= 0 && len < 255) {
@@ -123,7 +123,7 @@ void DcgWriter::appendLength(int len) {
     }
 }
 
-void DcgWriter::prependLength(int len) {
+void DcgEncoder::prependLength(int len) {
     if(len >= 0 && len < 127) {
         this->prepend_as_uint8(this->gameBytes, quint8(len));
     } else if(len >= 0 && len < 255) {
@@ -142,7 +142,7 @@ void DcgWriter::prependLength(int len) {
     }
 }
 
-void DcgWriter::appendNags(GameNode* node) {
+void DcgEncoder::appendNags(GameNode* node) {
     QList<int>* nags = node->getNags();
     int l = nags->length();
     if(l>0) {
@@ -155,7 +155,7 @@ void DcgWriter::appendNags(GameNode* node) {
     }
 }
 
-void DcgWriter::appendComment(GameNode* node) {
+void DcgEncoder::appendComment(GameNode* node) {
     const QByteArray comment_utf8 = node->getComment().toUtf8();
     int l = comment_utf8.size();
     if(l>0) {
@@ -165,49 +165,49 @@ void DcgWriter::appendComment(GameNode* node) {
     }
 }
 
-void DcgWriter::appendStartTag() {
+void DcgEncoder::appendStartTag() {
     this->gameBytes->append(quint8(0x84));
 }
 
-void DcgWriter::appendEndTag() {
+void DcgEncoder::appendEndTag() {
     this->gameBytes->append(quint8(0x85));
 }
 
-void DcgWriter::append_as_uint8(QByteArray* ba, quint8 r) {
+void DcgEncoder::append_as_uint8(QByteArray* ba, quint8 r) {
     ba->append(r);
 }
 
-void DcgWriter::append_as_uint16(QByteArray* ba, quint16 r) {
+void DcgEncoder::append_as_uint16(QByteArray* ba, quint16 r) {
     ba->append(quint8(r>>8));
     ba->append(quint8(r));
 }
 
-void DcgWriter::append_as_uint32(QByteArray* ba, quint32 r) {
+void DcgEncoder::append_as_uint32(QByteArray* ba, quint32 r) {
     this->append_as_uint16(ba, quint16(r>>16));
     this->append_as_uint16(ba, quint16(r));
 }
 
-void DcgWriter::append_as_uint64(QByteArray* ba, quint64 r) {
+void DcgEncoder::append_as_uint64(QByteArray* ba, quint64 r) {
     this->append_as_uint32(ba, quint32(r>>32));
     this->append_as_uint32(ba, quint32(r));
 }
 
 
-void DcgWriter::prepend_as_uint8(QByteArray* ba, quint8 r) {
+void DcgEncoder::prepend_as_uint8(QByteArray* ba, quint8 r) {
     ba->prepend(r);
 }
 
-void DcgWriter::prepend_as_uint16(QByteArray* ba, quint16 r) {
+void DcgEncoder::prepend_as_uint16(QByteArray* ba, quint16 r) {
     ba->prepend(quint8(r>>8));
     ba->prepend(quint8(r));
 }
 
-void DcgWriter::prepend_as_uint32(QByteArray* ba, quint32 r) {
+void DcgEncoder::prepend_as_uint32(QByteArray* ba, quint32 r) {
     this->prepend_as_uint16(ba, quint16(r>>16));
     this->prepend_as_uint16(ba, quint16(r));
 }
 
-void DcgWriter::prepend_as_uint64(QByteArray* ba, quint64 r) {
+void DcgEncoder::prepend_as_uint64(QByteArray* ba, quint64 r) {
     this->prepend_as_uint32(ba, quint32(r>>32));
     this->prepend_as_uint32(ba, quint32(r));
 }

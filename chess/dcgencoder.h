@@ -7,11 +7,11 @@
 
 namespace chess {
 
-class DcgWriter
+class DcgEncoder
 {
 public:
-    DcgWriter();
-    ~DcgWriter();
+    DcgEncoder();
+    ~DcgEncoder();
     QByteArray* encodeGame(Game *game);
     QByteArray* encodeHeader();
     void traverseNodes(GameNode *current);

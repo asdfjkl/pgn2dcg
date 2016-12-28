@@ -6,7 +6,7 @@
 #include <QStringList>
 #include <QDebug>
 #include "chess/pgn_reader.h"
-#include "chess/dcgwriter.h"
+#include "chess/dcgencoder.h"
 #include "chess/database.h"
 
 int main(int argc, char *argv[])

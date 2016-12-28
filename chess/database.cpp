@@ -1,7 +1,7 @@
 #include "database.h"
 #include "chess/game.h"
 #include "chess/pgn_reader.h"
-#include "chess/dcgwriter.h"
+#include "chess/dcgencoder.h"
 #include "assert.h"
 #include <iostream>
 #include <QFile>
@@ -20,7 +20,7 @@ chess::Database::Database(QString &filename)
     this->magicSitesString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x73");
     this->offsetNames = new QMap<quint32, QString>();
     this->offsetSites = new QMap<quint32, QString>();
-    this->dcgwriter = new chess::DcgWriter();
+    this->dcgwriter = new chess::DcgEncoder();
     this->pgnreader = new chess::PgnReader();
 }
 

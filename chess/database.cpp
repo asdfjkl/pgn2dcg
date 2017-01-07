@@ -7,6 +7,7 @@
 #include <iostream>
 #include <QFile>
 #include <QDataStream>
+#include <QDebug>
 
 chess::Database::Database(QString &filename)
 {
@@ -81,6 +82,9 @@ void chess::Database::importPgnNamesSites(QString &pgnfile, QMap<QString, quint3
         if(header->headers != 0) {
             if(header->headers->contains("Site")) {
                 QString site = header->headers->value("Site");
+                if(site.size() > 36) {
+                    site = site.left(36);
+                }
                 quint32 key = this->offsetSites->key(site, 4294967295);
                 if(key == 4294967295) {
                     sites->insert(header->headers->value("Site"), 0);
@@ -91,6 +95,9 @@ void chess::Database::importPgnNamesSites(QString &pgnfile, QMap<QString, quint3
             if(header->headers->contains("White")) {
                 QString white = header->headers->value("White");
                 quint32 key = this->offsetNames->key(white, 4294967295);
+                if(white.size() > 36) {
+                    white = white.left(36);
+                }
                 if(key == 4294967295) {
                     names->insert(header->headers->value("White"), 0);
                 } else {
@@ -99,6 +106,9 @@ void chess::Database::importPgnNamesSites(QString &pgnfile, QMap<QString, quint3
             }
             if(header->headers->contains("Black")) {
                 QString black = header->headers->value("Black");
+                if(black.size() > 36) {
+                    black = black.left(36);
+                }
                 quint32 key = this->offsetNames->key(black, 4294967295);
                 if(key == 4294967295) {
                     names->insert(header->headers->value("Black"), 0);
@@ -144,9 +154,10 @@ void chess::Database::importPgnAppendNames(QMap<QString, quint32> *names) {
                     name_i.append(0x20);
                 }
             }
-        quint32 offset = fnNames.pos();
-        fnNames.write(name_i,36);
-        names->insert(name_i, offset);
+            quint32 offset = fnNames.pos();
+            qDebug() << "writing pos: " << offset << " for " << name_i;
+            fnNames.write(name_i,36);
+            names->insert(name_i.trimmed(), offset);
         }
     }
     fnNames.close();
@@ -182,7 +193,7 @@ void chess::Database::importPgnAppendSites(QMap<QString, quint32> *sites) {
             }
         quint32 offset = fnSites.pos();
         fnSites.write(site_i,36);
-        sites->insert(site_i, offset);
+        sites->insert(site_i.trimmed(), offset);
         }
     }
     fnSites.close();
@@ -244,9 +255,10 @@ void chess::Database::importPgnAppendGamesIndices(QString &pgnfile, QMap<QString
                 quint32 site_offset = sites->value(header->headers->value("Site"));
                 ByteUtil::append_as_uint32(&iEntry, site_offset);
                 // elo white
-                quint16 elo_white = header->headers->value("Elo White").toUInt();
+                quint16 elo_white = header->headers->value("WhiteElo").toUInt();
+                qDebug() << "elo white: " << elo_white;
                 ByteUtil::append_as_uint16(&iEntry, elo_white);
-                quint16 elo_black = header->headers->value("Elo White").toUInt();
+                quint16 elo_black = header->headers->value("BlackElo").toUInt();
                 ByteUtil::append_as_uint16(&iEntry, elo_black);
                 // result
                 if(header->headers->contains("Result")) {
@@ -285,13 +297,14 @@ void chess::Database::importPgnAppendGamesIndices(QString &pgnfile, QMap<QString
                             year = prob_year;
                         }
                         if(dd_mm_yy.size() > 1 && dd_mm_yy.at(1).length() == 2) {
-                            quint16 prob_month = dd_mm_yy.at(1).toInt();
-                            if(prob_year > 0 && prob_year <= 12) {
+                            quint8 prob_month = dd_mm_yy.at(1).toInt();
+                            qDebug() << "prob monath: " << prob_month;
+                            if(prob_month > 0 && prob_month <= 12) {
                                 month = prob_month;
                             }
                             if(dd_mm_yy.size() > 2 && dd_mm_yy.at(2).length() == 2) {
-                            quint16 prob_day = dd_mm_yy.at(2).toInt();
-                            if(prob_year > 0 && prob_year < 32) {
+                            quint8 prob_day = dd_mm_yy.at(2).toInt();
+                            if(prob_day > 0 && prob_day < 32) {
                                 day = prob_day;
                                 }
                             }

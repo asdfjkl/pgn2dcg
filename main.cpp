@@ -34,7 +34,12 @@ int main(int argc, char *argv[])
               QCoreApplication::translate("main", "filename."));
     parser.addOption(dbFileOption);
 
+    QCommandLineOption appendOption("a", QCoreApplication::translate("main", "If database exists, append instead of overwriting"));
+    parser.addOption(appendOption);
+
     parser.process(app);
+
+    bool append = parser.isSet(appendOption);
 
     const QStringList args = parser.positionalArguments();
     // source pgn is args.at(0), destination filename is args.at(1)
@@ -67,6 +72,18 @@ int main(int argc, char *argv[])
     if(dbFileName.isEmpty()) {
         std::cout << "Error: no output Database filename given." << std::endl;
         exit(0);
+    }
+
+    if(!append) {
+        QFile dbFile;
+        dbFile.setFileName(dbFileName);
+        if(dbFile.exists()) {
+            bool succ = dbFile.remove();
+            if(!succ) {
+                std::cout << "Error: Output File exists, can't be deleted and append option is not selected." << std::endl;
+                exit(0);
+            }
+        }
     }
 
     chess::Database *database = new chess::Database(dbFileName);

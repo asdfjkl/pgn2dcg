@@ -275,14 +275,17 @@ void chess::Database::importPgnAppendGamesIndices(QString &pgnfile, QMap<QString
                 } else  {
                     ByteUtil::append_as_uint8(&iEntry, quint8(0x00));
                 }
+                qDebug() << iEntry.size();
                 // ECO
                 if(header->headers->contains("ECO")) {
-                    QByteArray eco = header->headers->value("ECO").toUtf8();
+                    QByteArray eco = header->headers->value("ECO").toUtf8().left(3);
+                    qDebug() << eco;
                     iEntry.append(eco);
                 } else {
                     QByteArray eco = QByteArrayLiteral("\x00\x00\x00");
                     iEntry.append(eco);
                 }
+                qDebug() << iEntry.size();
                 // parse date
                 if(header->headers->contains("Date")) {
                     QString date = header->headers->value("Date");
@@ -318,6 +321,7 @@ void chess::Database::importPgnAppendGamesIndices(QString &pgnfile, QMap<QString
                     ByteUtil::append_as_uint8(&iEntry, quint8(0x00));
                     ByteUtil::append_as_uint8(&iEntry, quint8(0x00));
                 }
+                qDebug() << iEntry.size();
                 assert(iEntry.size() == 35);
                 fnIndex.write(iEntry, iEntry.length());
                 //qDebug() << "just before reading back file";
@@ -325,6 +329,7 @@ void chess::Database::importPgnAppendGamesIndices(QString &pgnfile, QMap<QString
                 //qDebug() << "READ file ok";
                 QByteArray *g_enc = dcgencoder->encodeGame(g); //"<<<<<<<<<<<<<<<<<<<<<< this is the cause of mem acc fault"
                 //qDebug() << "enc ok";
+                qDebug() << "writing game: " << g_enc->toHex();
                 fnGames.write(*g_enc, g_enc->length());
                 delete g_enc;
                 header->headers->clear();

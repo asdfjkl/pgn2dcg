@@ -85,7 +85,9 @@ QByteArray* DcgEncoder::encodeGame(Game *game) {
     this->traverseNodes(game->getRootNode());
     // prepend length
     int l = this->gameBytes->size();
+    qDebug() << "len: " << l;
     this->prependLength(l);
+    qDebug() << "game: " << this->gameBytes->toHex();
     return new QByteArray(*this->gameBytes);
 }
 
@@ -128,18 +130,18 @@ void DcgEncoder::prependLength(int len) {
     if(len >= 0 && len < 127) {
         ByteUtil::prepend_as_uint8(this->gameBytes, quint8(len));
     } else if(len >= 0 && len < 255) {
-        ByteUtil::prepend_as_uint8(this->gameBytes, quint8(0x81));
         ByteUtil::prepend_as_uint8(this->gameBytes, quint8(len));
+        ByteUtil::prepend_as_uint8(this->gameBytes, quint8(0x81));        
     } else if(len >= 0 && len < 65535) {
+        ByteUtil::prepend_as_uint16(this->gameBytes, quint16(len));
         ByteUtil::prepend_as_uint8(this->gameBytes, quint8(0x82));
-        ByteUtil::prepend_as_uint16(this->gameBytes, quint16(len));
     } else if(len >= 0 && len < 16777215) {
-        ByteUtil::prepend_as_uint8(this->gameBytes, quint8(0x83));
-        ByteUtil::prepend_as_uint8(this->gameBytes, quint8(len >> 16));
         ByteUtil::prepend_as_uint16(this->gameBytes, quint16(len));
+        ByteUtil::prepend_as_uint8(this->gameBytes, quint8(len >> 16));
+        ByteUtil::prepend_as_uint8(this->gameBytes, quint8(0x83));
     } else if(len >= 0 && len < 4294967) {
-        ByteUtil::prepend_as_uint8(this->gameBytes, quint8(0x84));
         ByteUtil::prepend_as_uint32(this->gameBytes, quint32(len));
+        ByteUtil::prepend_as_uint8(this->gameBytes, quint8(0x84));
     }
 }
 

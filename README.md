@@ -1,8 +1,10 @@
-﻿#The Simple Chess Database Format (.dc*)
+#The Simple Chess Database Format (.dc*)
 
-    Version 1.0
+    Version 1.1
 
-    Dec. 6th, 2016
+    Jan. 14th, 2017
+    
+    Changes from 1.0: Added missing "Events"-File
 
 ## Motivation
 
@@ -48,12 +50,13 @@ As can be seen, such optimal encodings were very relevant in the age of floppy d
 
 ## Overview
 
-A simple chess database consists of four files:
+A simple chess database consists of five files:
 
 1. an index file. The naming convention is `database.dci`
 2. a name file, containing all player names. The naming convention is `database.dcn`
 3. a site file, containing all playing sites. The naming convention is `database.dcs`
-4. a file containing all games, including comments
+4. an event file, containing all event names. The naming convention is `database.dce`
+5. a file containing all games, including comments
 and annotation markers (such as +/-, ?! etc.).
 The naming convention is `database.dcg`
 
@@ -169,6 +172,23 @@ i.e. "SimpleCDbs" in ASCII without a string terminator.
 
 Site is a fixed sequence of 36 Bytes, with the site (location) of the tournament encoded in UTF-8. If the 
 site is less than 36 Bytes, the name is padded with spaces (`0x20`).
+
+## Event File
+
+The site file consists of a sequence of sites (i.e. places where the game took place):
+
+    [ MagicBytesEvent | Event#1 | Event#2 | ... | Event #N ]
+
+**MagicBytesSite**
+
+The ten byte sequence
+
+    0x53 0x69 0x6d 0x70 0x6c 0x65 0x43 0x44 0x62 0x65
+i.e. "SimpleCDbe" in ASCII without a string terminator.
+
+**Event**
+
+Event is a fixed sequence of 36 Bytes, with the event name (i.e. tournament name) encoded in UTF-8. If the event is less than 36 Bytes, the name is padded with spaces (`0x20`).
 
 
 ## Database File

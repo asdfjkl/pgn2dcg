@@ -169,7 +169,7 @@ void chess::Database::importPgnAppendSites(QMap<QString, quint32> *sites) {
     QFile fnSites(this->filenameSites);
     if(fnSites.open(QFile::Append)) {
         if(fnSites.pos() == 0) {
-            fnSites.write(this->magicNameString, this->magicNameString.length());
+            fnSites.write(this->magicSitesString, this->magicSitesString.length());
         }
         QList<QString> keys = sites->keys();
         for (int i = 0; i < keys.length(); i++) {

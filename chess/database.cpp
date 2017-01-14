@@ -24,6 +24,7 @@ chess::Database::Database(QString &filename)
     this->magicEventString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x63");
     this->offsetNames = new QMap<quint32, QString>();
     this->offsetSites = new QMap<quint32, QString>();
+    this->offsetEvents = new QMap<quint32, QString>();
     this->dcgencoder = new chess::DcgEncoder();
     this->pgnreader = new chess::PgnReader();
 }
@@ -32,8 +33,10 @@ chess::Database::~Database()
 {
     this->offsetNames->clear();
     this->offsetSites->clear();
+    this->offsetEvents->clear();
     delete this->offsetNames;
     delete this->offsetSites;
+    delete this->offsetEvents;
     delete this->dcgencoder;
     delete this->pgnreader;
 }

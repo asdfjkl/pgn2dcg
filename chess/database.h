@@ -31,6 +31,7 @@ private:
     QByteArray magicEventString;
     QMap<quint32, QString> *offsetNames;
     QMap<quint32, QString> *offsetSites;
+    QMap<quint32, QString> *offsetEvents;
     void writeSites();
     void writeNames();
     void writeIndex();

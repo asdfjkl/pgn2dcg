@@ -65,7 +65,7 @@ The naming convention is `database.dcg`
 An index file containing N games has the following format:
 
     [ MagicBytesIndex  |  Version Number | OpenDefault | IndexEntry #1 | IndexEntry #2 | ... | IndexEntry #N ]
-      10 Bytes            1 Byte           8 Byte        35 Byte         35 Byte               35 Byte
+      10 Bytes            1 Byte           8 Byte        39 Byte         39 Byte               39 Byte
 
 The next sections describe the above blocks in details.
 
@@ -86,8 +86,8 @@ Unsigned 64 bit integer pointing to the offset of an IndexEntry within the index
 
 **IndexEntry**
 
-    IndexEntry = [ Status | Offset | WhiteRef | BlackRef   | Round   | SiteRef    | Elo White | Elo Black  | Result | ECO    | Year   | Month | Day    ]
-                   1 Byte   8 Byte   4 Byte     4 Byte       2 Byte    4 Byte       2 Byte      2 Byte       1 Byte   3 Byte   2 Byte   1 Byte  1 Byte
+    IndexEntry = [ Status | Offset | WhiteRef | BlackRef   | Round   | SiteRef | EventRef | Elo White | Elo Black  | Result | ECO    | Year   | Month | Day    ]
+                   1 Byte   8 Byte   4 Byte     4 Byte       2 Byte    4 Byte    4 Byte     2 Byte      2 Byte       1 Byte   3 Byte   2 Byte   1 Byte  1 Byte
 
 Games may not be deleted immediately to speed up writing out changes made by a user. Hence games
 can be marked as deleted, and a game with the applied changes can be added at the end of the (game) file.
@@ -110,6 +110,9 @@ Unsigned 16 bit integer denoting the round the game was played in. `0x00 0x00` i
 
 **SiteRef**
 Offset (unsigned 32-bit integer) pointing to an entry in `database.dcn`, i.e. the site the game was played at...
+
+**EventRef**
+Offset (unsigned 32-bit integer) pointing to an entry in `database.dce`, i.e. the event the game was played at...
 
 **Elo White**
 Elo White is an unsigned 16 bit integer denoting the ELO number of the White player.`0x00 0x00` if unknown.
@@ -179,7 +182,7 @@ The site file consists of a sequence of sites (i.e. places where the game took p
 
     [ MagicBytesEvent | Event#1 | Event#2 | ... | Event #N ]
 
-**MagicBytesSite**
+**MagicBytesEvent**
 
 The ten byte sequence
 
@@ -189,7 +192,6 @@ i.e. "SimpleCDbe" in ASCII without a string terminator.
 **Event**
 
 Event is a fixed sequence of 36 Bytes, with the event name (i.e. tournament name) encoded in UTF-8. If the event is less than 36 Bytes, the name is padded with spaces (`0x20`).
-
 
 ## Database File
 

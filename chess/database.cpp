@@ -16,10 +16,12 @@ chess::Database::Database(QString &filename)
     this->filenameIndex = QString(filename).append(".dci");
     this->filenameNames = QString(filename).append(".dcn");
     this->filenameSites = QString(filename).append(".dcs");
-    this->magicNameString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x6e");
+    this->filenameEvents = QString(filename).append(".dce");
+    this->magicNameString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x6e");   
     this->magicIndexString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x69");
     this->magicGamesString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x67");
     this->magicSitesString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x73");
+    this->magicEventString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x63");
     this->offsetNames = new QMap<quint32, QString>();
     this->offsetSites = new QMap<quint32, QString>();
     this->dcgencoder = new chess::DcgEncoder();
@@ -40,17 +42,22 @@ void chess::Database::importPgnAndSave(QString &pgnfile) {
 
     QMap<QString, quint32> *names = new QMap<QString, quint32>();
     QMap<QString, quint32> *sites = new QMap<QString, quint32>();
+    QMap<QString, quint32> *events = new QMap<QString, quint32>();
 
-    this->importPgnNamesSites(pgnfile, names, sites);
+    this->importPgnNamesSitesEvents(pgnfile, names, sites, events);
     this->importPgnAppendSites(sites);
     this->importPgnAppendNames(names);
-    this->importPgnAppendGamesIndices(pgnfile, names, sites);
+    this->importPgnAppendEvents(events);
+    this->importPgnAppendGamesIndices(pgnfile, names, sites, events);
 
     delete names;
     delete sites;
 }
 
-void chess::Database::importPgnNamesSites(QString &pgnfile, QMap<QString, quint32> *names, QMap<QString, quint32> *sites) {
+void chess::Database::importPgnNamesSitesEvents(QString &pgnfile,
+                                          QMap<QString, quint32> *names,
+                                          QMap<QString, quint32> *sites,
+                                          QMap<QString, quint32> *events) {
 
     std::cout << "scanning names and sites from " << pgnfile.toStdString() << std::endl;
     const char* encoding = pgnreader->detect_encoding(pgnfile);
@@ -90,6 +97,18 @@ void chess::Database::importPgnNamesSites(QString &pgnfile, QMap<QString, quint3
                     sites->insert(header->headers->value("Site"), 0);
                 } else {
                     sites->insert(header->headers->value("Site"), key);
+                }
+            }
+            if(header->headers->contains("Event")) {
+                QString event = header->headers->value("Event");
+                if(event.size() > 36) {
+                    event = event.left(36);
+                }
+                quint32 key = this->offsetSites->key(event, 4294967295);
+                if(key == 4294967295) {
+                    events->insert(header->headers->value("Event"), 0);
+                } else {
+                    events->insert(header->headers->value("Event"), key);
                 }
             }
             if(header->headers->contains("White")) {
@@ -199,7 +218,47 @@ void chess::Database::importPgnAppendSites(QMap<QString, quint32> *sites) {
     fnSites.close();
 }
 
-void chess::Database::importPgnAppendGamesIndices(QString &pgnfile, QMap<QString, quint32> *names, QMap<QString, quint32> *sites) {
+// save the map at the _end_ of file with filename (i.e. apend new names or sites)
+// update the offset while saving
+void chess::Database::importPgnAppendEvents(QMap<QString, quint32> *events) {
+    QFile fnEvents(this->filenameEvents);
+    if(fnEvents.open(QFile::Append)) {
+        if(fnEvents.pos() == 0) {
+            fnEvents.write(this->magicEventString, this->magicEventString.length());
+        }
+        QList<QString> keys = events->keys();
+        for (int i = 0; i < keys.length(); i++) {
+            // value != 0 means the value exists
+            // already in the existing database maps
+            quint32 ex_offset = events->value(keys.at(i));
+            if(ex_offset != 0) {
+                continue;
+            }
+            QByteArray event_i = keys.at(i).toUtf8();
+            // truncate if too long
+            if(event_i.size() > 36) {
+                event_i = event_i.left(36);
+            }
+            // pad to 36 byte if necc.
+            int pad_n = 36 - event_i.length();
+            if(pad_n > 0) {
+                for(int j=0;j<pad_n;j++) {
+                    event_i.append(0x20);
+                }
+            }
+        quint32 offset = fnEvents.pos();
+        fnEvents.write(event_i,36);
+        events->insert(event_i.trimmed(), offset);
+        }
+    }
+    fnEvents.close();
+}
+
+
+void chess::Database::importPgnAppendGamesIndices(QString &pgnfile,
+                                                  QMap<QString, quint32> *names,
+                                                  QMap<QString, quint32> *sites,
+                                                  QMap<QString, quint32> *events) {
 
     // now save everything
     chess::HeaderOffset *header = new chess::HeaderOffset();
@@ -254,6 +313,9 @@ void chess::Database::importPgnAppendGamesIndices(QString &pgnfile, QMap<QString
                 // site offset
                 quint32 site_offset = sites->value(header->headers->value("Site"));
                 ByteUtil::append_as_uint32(&iEntry, site_offset);
+                // event offset
+                quint32 event_offset = events->value(header->headers->value("Event"));
+                ByteUtil::append_as_uint32(&iEntry, event_offset);
                 // elo white
                 quint16 elo_white = header->headers->value("WhiteElo").toUInt();
                 qDebug() << "elo white: " << elo_white;

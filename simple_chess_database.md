@@ -63,7 +63,7 @@ The naming convenction is `database.dcg`
 An index file containging N games has the following format:
 
     [ MagicBytesIndex  |  Version Number | IndexEntry #1 | IndexEntry #2 | ... | IndexEntry #N ]
-      10 Bytes            1 Byte           35 Byte         35 Byte               35 Byte
+      10 Bytes            1 Byte           39 Byte         39 Byte               39 Byte
 
 The next sections describe the above blocks in details.
 
@@ -80,8 +80,8 @@ One byte `0x00` to denote the version of this document.
 
 **IndexEntry**
 
-    IndexEntry = [ Status | Offset | WhiteRef | BlackRef   | Round   | SiteRef    | Elo White | Elo Black  | Result | ECO    | Year   | Month | Day    ]
-                   1 Byte   8 Byte   4 Byte     4 Byte       2 Byte    4 Byte       2 Byte      2 Byte       1 Byte   3 Byte   2 Byte   1 Byte  1 Byte
+    IndexEntry = [ Status | Offset | WhiteRef | BlackRef   | Round   | SiteRef | EventRef | Elo White | Elo Black  | Result | ECO    | Year   | Month | Day    ]
+                   1 Byte   8 Byte   4 Byte     4 Byte       2 Byte    4 Byte    4 Byte     2 Byte      2 Byte       1 Byte   3 Byte   2 Byte   1 Byte  1 Byte
 
 Games may not be deleted immediately to speed up writing out changes made by a user. Hence games
 can be marked as deleted, add a game with the applied changes at the end of the file,

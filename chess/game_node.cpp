@@ -23,6 +23,7 @@
 #include <iostream>
 #include <assert.h>
 
+
 namespace chess {
 
 int GameNode::id = 0;

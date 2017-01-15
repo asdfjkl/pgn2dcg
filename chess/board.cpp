@@ -1186,8 +1186,7 @@ Moves* Board::pseudo_legal_moves_from(int from_square, bool with_castles, bool t
                         int lookup_idx;
                         if(piece == KNIGHT) {
                             lookup_idx = IDX_KNIGHT;
-                        }
-                        if(piece == KING) {
+                        } else {
                             lookup_idx = IDX_KING;
                         }
                         for(int j=1;j<=DIR_TABLE[lookup_idx][0];j++) {

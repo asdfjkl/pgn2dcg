@@ -23,8 +23,8 @@
 
 #include "board.h"
 #include "move.h"
+#include <QtGui/QColor>
 #include <QPoint>
-#include <QtGui/qcolor.h>
 
 namespace chess {
 

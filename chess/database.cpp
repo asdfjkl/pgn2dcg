@@ -27,6 +27,8 @@ chess::Database::Database(QString &filename)
     this->offsetEvents = new QMap<quint32, QString>();
     this->dcgencoder = new chess::DcgEncoder();
     this->pgnreader = new chess::PgnReader();
+        
+    this->indices = new QList<chess::IndexEntry*>();
 }
 
 chess::Database::~Database()
@@ -39,6 +41,257 @@ chess::Database::~Database()
     delete this->offsetEvents;
     delete this->dcgencoder;
     delete this->pgnreader;
+    delete this->indices;
+}
+
+
+void chess::Database::loadIndex() {
+
+    this->indices->clear();
+    QFile dciFile;
+    dciFile.setFileName(this->filenameIndex);
+    if(!dciFile.exists()) {
+        std::cout << "Error: can't open .dci file." << std::endl;
+    } else {
+        // read index file into QList of IndexEntries
+        // (basically memory mapping file)
+        dciFile.open(QFile::ReadOnly);
+        QDataStream gi(&dciFile);
+        bool error = false;
+        QByteArray magic;
+        magic.resize(10);
+        magic.fill(char(0x20));
+        gi.readRawData(magic.data(), 10);
+        if(QString::fromUtf8(magic) != this->magicIndexString) {
+            error = true;
+        }
+        while(!gi.atEnd() && !error) {
+            QByteArray idx;
+            idx.resize(35);
+            idx.fill(char(0x00));
+            if(gi.readRawData(idx.data(), 35) < 0) {
+                error = true;
+                continue;
+            }
+            QDataStream ds_entry_i(idx);
+            chess::IndexEntry *entry_i = new chess::IndexEntry();
+
+            quint8 status;
+            ds_entry_i >> status;
+            qDebug() << "status: " << status;
+            if(status == GAME_DELETED) {
+                entry_i->deleted = true;
+            } else {
+                entry_i->deleted = false;
+            }
+            ds_entry_i >> entry_i->gameOffset;
+            qDebug() << "gameOffset: " << entry_i->gameOffset;
+            ds_entry_i >> entry_i->whiteOffset;
+            qDebug() << "whiteOffset: " << entry_i->whiteOffset;
+            ds_entry_i >> entry_i->blackOffset;
+            qDebug() << "whiteOffset: " << entry_i->blackOffset;
+            ds_entry_i >> entry_i->round;
+            qDebug() << "round: " << entry_i->round;
+            ds_entry_i >> entry_i->siteRef;
+            qDebug() << "site ref: " << entry_i->siteRef;
+            ds_entry_i >> entry_i->eloWhite;
+            qDebug() << "eloWhite: " << entry_i->eloWhite;
+            ds_entry_i >> entry_i->eloBlack;
+            qDebug() << "eloBlack: " << entry_i->eloBlack;
+            ds_entry_i >> entry_i->result;
+            qDebug() << "result: " << entry_i->result;
+            char *eco = new char[sizeof "A00"];
+            ds_entry_i.readRawData(eco, 3);
+            entry_i->eco = eco;
+            qDebug() << QString::fromLocal8Bit(eco);
+            ds_entry_i >> entry_i->year;
+            ds_entry_i >> entry_i->month;
+            ds_entry_i >> entry_i->day;
+            qDebug() << "yy.mm.dd " << entry_i->year << entry_i->month << entry_i->day;
+            this->indices->append(entry_i);
+        }
+        dciFile.close();
+    }
+}
+
+void chess::Database::loadSites() {
+    this->offsetSites->clear();
+    // for name file and site file build QMaps to quickly
+    // access the data
+    // read index file into QList of IndexEntries
+    // (basically memory mapping file)
+    QFile dcsFile;
+    dcsFile.setFileName(this->filenameSites);
+    dcsFile.open(QFile::ReadOnly);
+    QDataStream ss(&dcsFile);
+    bool error = false;
+    QByteArray magic;
+    magic.resize(10);
+    magic.fill(char(0x20));
+    ss.readRawData(magic.data(), 10);
+    if(QString::fromUtf8(magic) != this->magicSitesString) {
+        error = true;
+    }
+    while(!ss.atEnd() && !error) {
+        quint32 pos = quint32(dcsFile.pos());
+        QByteArray site_bytes;
+        site_bytes.resize(36);
+        site_bytes.fill(char(0x20));
+        if(ss.readRawData(site_bytes.data(), 36) < 0) {
+            error = true;
+            break;
+        }
+        QString site = QString::fromUtf8(site_bytes).trimmed();
+        this->offsetSites->insert(pos, site);
+    }
+    dcsFile.close();
+
+}
+
+int chess::Database::countGames() {
+    return this->indices->length();
+}
+
+chess::Game* chess::Database::getGameAt(int i) {
+
+    if(i >= this->indices->size()) {
+        return 0; // maybe throw out of range error or something instead of silently failing
+    }
+    chess::IndexEntry *ie = this->indices->at(i);
+    if(ie->deleted) {
+        // todo: jump to next valid entry
+    }
+    chess::Game* game = new chess::Game();
+    QString whiteName = this->offsetNames->value(ie->whiteOffset);
+    QString blackName = this->offsetNames->value(ie->blackOffset);
+    QString site = this->offsetSites->value(ie->siteRef);
+    game->headers->insert("White",whiteName);
+    game->headers->insert("Black", blackName);
+    game->headers->insert("Site", site);
+    QString date("");
+    if(ie->year != 0) {
+        date.append(QString::number(ie->year));
+    } else {
+        date.append("????");
+    }
+    date.append(".");
+    if(ie->month != 0) {
+        date.append(QString::number(ie->month));
+    } else {
+        date.append("??");
+    }
+    date.append(".");
+    if(ie->day != 0) {
+        date.append(QString::number(ie->day));
+    } else {
+        date.append("??");
+    }
+    game->headers->insert("Date", date);
+    qDebug() << "RESULT: " << ie->result;
+    if(ie->result == RES_WHITE_WINS) {
+        game->headers->insert("Result", "1-0");
+        game->setResult(RES_WHITE_WINS);
+    } else if(ie->result == RES_BLACK_WINS) {
+        game->headers->insert("Result", "0-1");
+        game->setResult(RES_BLACK_WINS);
+    } else if(ie->result == RES_DRAW) {
+        game->headers->insert("Result", "1/2-1/2");
+        game->setResult(RES_DRAW);
+    } else {
+        game->headers->insert("Result", "*");
+        game->setResult(RES_UNDEF);
+    }
+    game->headers->insert("ECO", ie->eco);
+    if(ie->round != 0) {
+        game->headers->insert("Round", QString::number((ie->round)));
+    } else {
+        game->headers->insert("Round", "?");
+    }
+    QFile fnGames(this->filenameGames);
+    if(fnGames.open(QFile::ReadOnly)) {
+        fnGames.seek(ie->gameOffset);
+        QDataStream gi(&fnGames);
+        int length = this->decodeLength(&gi);
+        QByteArray game_raw;
+        game_raw.resize(length);
+        game_raw.fill(char(0x20));
+        gi.readRawData(game_raw.data(), length);
+        qDebug() << "length" << length << " arr: " << game_raw.toHex();
+        this->dcgdecoder->decodeGame(game, &game_raw);
+    }
+    return game;
+}
+
+int chess::Database::decodeLength(QDataStream *stream) {
+    quint8 len1 = 0;
+    *stream >> len1;
+    qDebug() << "len1 is this: " << QString("%1").arg(len1 , 0, 16);
+    if(len1 < 127) {
+        return int(len1);
+    }
+    if(len1 == 0x81) {
+        quint8 len2 = 0;
+        *stream >> len2;
+        return int(len2);
+    }
+    if(len1 == 0x82) {
+        quint16 len2 = 0;
+        *stream >> len2;
+        return int(len2);
+    }
+    if(len1 == 0x83) {
+        quint8 len2=0;
+        quint16 len3=0;
+        *stream >> len2;
+        *stream >> len3;
+        quint32 ret = 0;
+        ret = len2 << 16;
+        ret = ret + len3;
+        return ret;
+    }
+    if(len1 == 0x84) {
+        quint32 len = 0;
+        *stream >> len;
+        return int(len);
+    }
+    QByteArray buffer;
+    quint8 byte;
+    for (uint i=0; i<50; ++i) {
+          *stream >> byte;
+          buffer.append(byte);
+    }
+    qDebug() << "error here: " << buffer.toHex();
+    throw std::invalid_argument("length decoding called with illegal byte value");
+}
+
+void chess::Database::loadNames() {
+
+    this->offsetNames->clear();
+    QFile dcnFile;
+    dcnFile.setFileName(this->filenameNames);
+    dcnFile.open(QFile::ReadOnly);
+    QDataStream sn(&dcnFile);
+    bool error = false;
+    QByteArray magic;
+    magic.resize(10);
+    magic.fill(char(0x20));
+    sn.readRawData(magic.data(), 10);
+    if(QString::fromUtf8(magic) != this->magicNameString) {
+        error = true;
+    }
+    while(!sn.atEnd() && !error) {
+        quint32 pos = quint32(dcnFile.pos());
+        QByteArray name_bytes;
+        name_bytes.resize(36);
+        name_bytes.fill(char(0x20));
+        if(sn.readRawData(name_bytes.data(), 36) < 0) {
+            error = true;
+            break;
+        }
+        QString name = QString::fromUtf8(name_bytes).trimmed();
+        this->offsetNames->insert(pos, name);
+    }
+    dcnFile.close();
 }
 
 void chess::Database::importPgnAndSave(QString &pgnfile) {

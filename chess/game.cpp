@@ -34,6 +34,7 @@ Game::Game() {
 
     this->wasEcoClassified = false;
     this->ecoInfo = new EcoInfo{"",""};
+
 }
 
 Game::~Game() {

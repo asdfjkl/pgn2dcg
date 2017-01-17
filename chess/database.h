@@ -24,6 +24,7 @@ public:
     void loadIndex();
     void loadSites();
     void loadNames();
+    void loadEvents();
     chess::Game* getGameAt(int i);
     int countGames();
 
@@ -41,6 +42,7 @@ private:
     QByteArray magicGamesString;
     QByteArray magicSitesString;
     QByteArray magicEventString;
+    QByteArray version;
     QMap<quint32, QString> *offsetNames;
     QMap<quint32, QString> *offsetSites;
     QMap<quint32, QString> *offsetEvents;
@@ -64,9 +66,10 @@ private:
 
     int decodeLength(QDataStream *stream);
     chess::DcgEncoder *dcgencoder;
-    chess::DcgEncoder *dcgdecoder;
+    chess::DcgDecoder *dcgdecoder;
     chess::PgnReader *pgnreader;
-    
+
+    quint64 loadUponOpen;
 };
 
 }

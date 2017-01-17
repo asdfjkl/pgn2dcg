@@ -2,6 +2,7 @@
 #include "chess/game.h"
 #include "chess/pgn_reader.h"
 #include "chess/dcgencoder.h"
+#include "chess/dcgdecoder.h"
 #include "chess/byteutil.h"
 #include "assert.h"
 #include <iostream>
@@ -21,12 +22,16 @@ chess::Database::Database(QString &filename)
     this->magicIndexString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x69");
     this->magicGamesString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x67");
     this->magicSitesString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x73");
-    this->magicEventString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x63");
+    this->magicEventString = QByteArrayLiteral("\x53\x69\x6d\x70\x6c\x65\x43\x44\x62\x65");
+    this->version = QByteArrayLiteral("\x00");
     this->offsetNames = new QMap<quint32, QString>();
     this->offsetSites = new QMap<quint32, QString>();
     this->offsetEvents = new QMap<quint32, QString>();
     this->dcgencoder = new chess::DcgEncoder();
+    this->dcgdecoder = new chess::DcgDecoder();
     this->pgnreader = new chess::PgnReader();
+
+    this->loadUponOpen = 0;
         
     this->indices = new QList<chess::IndexEntry*>();
 }
@@ -40,6 +45,7 @@ chess::Database::~Database()
     delete this->offsetSites;
     delete this->offsetEvents;
     delete this->dcgencoder;
+    delete this->dcgdecoder;
     delete this->pgnreader;
     delete this->indices;
 }
@@ -55,6 +61,7 @@ void chess::Database::loadIndex() {
     } else {
         // read index file into QList of IndexEntries
         // (basically memory mapping file)
+        qDebug() << "open file: ";
         dciFile.open(QFile::ReadOnly);
         QDataStream gi(&dciFile);
         bool error = false;
@@ -65,11 +72,22 @@ void chess::Database::loadIndex() {
         if(QString::fromUtf8(magic) != this->magicIndexString) {
             error = true;
         }
+        qDebug() << magic.toHex();
+        QByteArray version;
+        version.resize(1);;
+        version.fill(char(0x00));
+        gi.readRawData(version.data(), 1);
+        qDebug() << "VERSION: " << version.at(0);
+        if(version.at(0) != 0x00) {
+            error = true;
+        }
+        gi >> this->loadUponOpen;
+        qDebug() << "LOAD UPON: " << this->loadUponOpen;
         while(!gi.atEnd() && !error) {
             QByteArray idx;
-            idx.resize(35);
+            idx.resize(39);
             idx.fill(char(0x00));
-            if(gi.readRawData(idx.data(), 35) < 0) {
+            if(gi.readRawData(idx.data(), 39) < 0) {
                 error = true;
                 continue;
             }
@@ -94,6 +112,8 @@ void chess::Database::loadIndex() {
             qDebug() << "round: " << entry_i->round;
             ds_entry_i >> entry_i->siteRef;
             qDebug() << "site ref: " << entry_i->siteRef;
+            ds_entry_i >> entry_i->eventRef;
+            qDebug() << "event ref: " << entry_i->eventRef;
             ds_entry_i >> entry_i->eloWhite;
             qDebug() << "eloWhite: " << entry_i->eloWhite;
             ds_entry_i >> entry_i->eloBlack;
@@ -111,6 +131,9 @@ void chess::Database::loadIndex() {
             this->indices->append(entry_i);
         }
         dciFile.close();
+        if(int(this->loadUponOpen) >= this->indices->size()) {
+            this->loadUponOpen = 0;
+        }
     }
 }
 
@@ -148,6 +171,43 @@ void chess::Database::loadSites() {
 
 }
 
+void chess::Database::loadEvents() {
+    this->offsetEvents->clear();
+    // for events file and site file build QMaps to quickly
+    // access the data
+    // read index file into QList of IndexEntries
+    // (basically memory mapping file)
+    QFile dceFile;
+    dceFile.setFileName(this->filenameEvents);
+    dceFile.open(QFile::ReadOnly);
+    QDataStream ss(&dceFile);
+    bool error = false;
+    QByteArray magic;
+    magic.resize(10);
+    magic.fill(char(0x20));
+    ss.readRawData(magic.data(), 10);
+    if(QString::fromUtf8(magic) != this->magicEventString) {
+        error = true;
+    }
+    while(!ss.atEnd() && !error) {
+        quint32 pos = quint32(dceFile.pos());
+        QByteArray event_bytes;
+        event_bytes.resize(36);
+        event_bytes.fill(char(0x20));
+        if(ss.readRawData(event_bytes.data(), 36) < 0) {
+            error = true;
+            break;
+        }
+        QString event = QString::fromUtf8(event_bytes).trimmed();
+        qDebug() << "READ EVENT: " << pos << "at " << event;
+        this->offsetEvents->insert(pos, event);
+    }
+    dceFile.close();
+
+}
+
+
+
 int chess::Database::countGames() {
     return this->indices->length();
 }
@@ -165,24 +225,34 @@ chess::Game* chess::Database::getGameAt(int i) {
     QString whiteName = this->offsetNames->value(ie->whiteOffset);
     QString blackName = this->offsetNames->value(ie->blackOffset);
     QString site = this->offsetSites->value(ie->siteRef);
+    qDebug() << "EVENT REF: " << ie->eventRef;
+    QString event = this->offsetEvents->value(ie->eventRef);
     game->headers->insert("White",whiteName);
     game->headers->insert("Black", blackName);
     game->headers->insert("Site", site);
+    game->headers->insert("Event", event);
+    if(ie->eloWhite != 0) {
+        game->headers->insert("WhiteElo", QString::number(ie->eloWhite));
+    }
+    if(ie->eloBlack != 0) {
+        game->headers->insert("BlackElo", QString::number(ie->eloBlack));
+    }
+    qDebug() << "EVENT IS: " << event;
     QString date("");
     if(ie->year != 0) {
-        date.append(QString::number(ie->year));
+        date.append(QString::number(ie->year).rightJustified(4,'0'));
     } else {
         date.append("????");
     }
     date.append(".");
     if(ie->month != 0) {
-        date.append(QString::number(ie->month));
+        date.append(QString::number(ie->month).rightJustified(2,'0'));
     } else {
         date.append("??");
     }
     date.append(".");
     if(ie->day != 0) {
-        date.append(QString::number(ie->day));
+        date.append(QString::number(ie->day).rightJustified(2,'0'));
     } else {
         date.append("??");
     }
@@ -308,6 +378,7 @@ void chess::Database::importPgnAndSave(QString &pgnfile) {
 
     delete names;
     delete sites;
+    delete events;
 }
 
 void chess::Database::importPgnNamesSitesEvents(QString &pgnfile,
@@ -503,6 +574,7 @@ void chess::Database::importPgnAppendEvents(QMap<QString, quint32> *events) {
                 }
             }
         quint32 offset = fnEvents.pos();
+        qDebug() << "ADDING OFFSET: " << offset;
         fnEvents.write(event_i,36);
         events->insert(event_i.trimmed(), offset);
         }
@@ -531,11 +603,18 @@ void chess::Database::importPgnAppendGamesIndices(QString &pgnfile,
         if(fnGames.open(QFile::Append)) {
             if(fnIndex.pos() == 0) {
                 fnIndex.write(this->magicIndexString, this->magicIndexString.length());
+                // version
+                fnIndex.write(this->version,1);
+                QByteArray openDefault;
+                //openDefault.resize(8);
+                //openDefault.fill(0x00);
+                ByteUtil::append_as_uint64(&openDefault, this->loadUponOpen);
+                qDebug() << "OFFSET0: " << openDefault.toHex();
+                fnIndex.write(openDefault, 8);
             }
             if(fnGames.pos() == 0) {
                 fnGames.write(magicGamesString, magicGamesString.length());
             }
-
             std::cout << "\nsaving games: 0/"<< size;
             int i = 0;
             while(!stop) {
@@ -572,6 +651,7 @@ void chess::Database::importPgnAppendGamesIndices(QString &pgnfile,
                 // event offset
                 quint32 event_offset = events->value(header->headers->value("Event"));
                 ByteUtil::append_as_uint32(&iEntry, event_offset);
+                qDebug() << "EVENT OFFSET: " << event_offset;
                 // elo white
                 quint16 elo_white = header->headers->value("WhiteElo").toUInt();
                 qDebug() << "elo white: " << elo_white;
@@ -614,6 +694,7 @@ void chess::Database::importPgnAppendGamesIndices(QString &pgnfile,
                     QStringList dd_mm_yy = date.split(".");
                     if(dd_mm_yy.size() > 0 && dd_mm_yy.at(0).length() == 4) {
                         quint16 prob_year = dd_mm_yy.at(0).toInt();
+                        qDebug() << "PROb YEAR:" << prob_year;
                         if(prob_year > 0 && prob_year < 2100) {
                             year = prob_year;
                         }
@@ -631,6 +712,7 @@ void chess::Database::importPgnAppendGamesIndices(QString &pgnfile,
                             }
                         }
                     }
+                    qDebug() << "YEAR: " << year;
                     ByteUtil::append_as_uint16(&iEntry, year);
                     ByteUtil::append_as_uint8(&iEntry, month);
                     ByteUtil::append_as_uint8(&iEntry, day);
@@ -640,7 +722,7 @@ void chess::Database::importPgnAppendGamesIndices(QString &pgnfile,
                     ByteUtil::append_as_uint8(&iEntry, quint8(0x00));
                 }
                 qDebug() << iEntry.size();
-                assert(iEntry.size() == 35);
+                assert(iEntry.size() == 39);
                 fnIndex.write(iEntry, iEntry.length());
                 //qDebug() << "just before reading back file";
                 chess::Game *g = pgnreader->readGameFromFile(pgnfile, encoding, header->offset);

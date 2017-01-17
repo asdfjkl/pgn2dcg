@@ -23,7 +23,9 @@ SOURCES += main.cpp \
     chess/sitebase.cpp \
     chess/database.cpp \
     chess/dcgencoder.cpp \
-    chess/byteutil.cpp
+    chess/byteutil.cpp \
+    chess/dcgdecoder.cpp \
+    chess/indexentry.cpp
 
 HEADERS += \
     chess/board.h \
@@ -39,4 +41,6 @@ HEADERS += \
     chess/sitebase.h \
     chess/database.h \
     chess/dcgencoder.h \
-    chess/byteutil.h
+    chess/byteutil.h \
+    chess/dcgdecoder.h \
+    chess/indexentry.h

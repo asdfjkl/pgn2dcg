@@ -1,8 +1,8 @@
 #The Simple Chess Database Format (.dc*)
 
-    Version 1.0
+    Version 1.1
 
-    30/11/2016
+    22.10.2018
 
 ## Motivation
 
@@ -63,7 +63,7 @@ The naming convenction is `database.dcg`
 An index file containging N games has the following format:
 
     [ MagicBytesIndex  |  Version Number | IndexEntry #1 | IndexEntry #2 | ... | IndexEntry #N ]
-      10 Bytes            1 Byte           39 Byte         39 Byte               39 Byte
+      10 Bytes            1 Byte           61 Byte         61 Byte               61 Byte
 
 The next sections describe the above blocks in details.
 
@@ -76,12 +76,12 @@ i.e. "SimpleCDbi" in ASCII without a string terminator.
 
 **Version Number**
 
-One byte `0x00` to denote the version of this document.
+One byte `0x01` to denote the version of this document.
 
 **IndexEntry**
 
-    IndexEntry = [ Status | Offset | WhiteRef | BlackRef   | Round   | SiteRef | EventRef | Elo White | Elo Black  | Result | ECO    | Year   | Month | Day    ]
-                   1 Byte   8 Byte   4 Byte     4 Byte       2 Byte    4 Byte    4 Byte     2 Byte      2 Byte       1 Byte   3 Byte   2 Byte   1 Byte  1 Byte
+    IndexEntry = [ Status | Offset | WhiteRef | BlackRef   | Round   | SiteRef | EventRef | Elo White | Elo Black  | Result | ECO    | Year   | Month | Day | Halfmoves | FinPosMaterial | PawnMoveData  ]
+                   1 Byte   8 Byte   4 Byte     4 Byte       2 Byte    4 Byte    4 Byte     2 Byte      2 Byte       1 Byte   3 Byte   2 Byte   1 Byte  1 Byte  2 Byte  4 Byte  9 Byte
 
 Games may not be deleted immediately to speed up writing out changes made by a user. Hence games
 can be marked as deleted, add a game with the applied changes at the end of the file,
@@ -131,6 +131,77 @@ Month: unisgned 8 bit integer denoting the month the game was played. `0x00` if 
 
 **Day**
 Day: unsigned 8 bit integer denoting the day the game was played. `0x00` if unknown.
+
+**Halfmoves**
+unsigned 16 bit integer denoting the number of half moves of the game.
+
+**FinPosMaterial**
+unsigned 32 bit integer denoting the material of the final position of the game. This information can be
+used to speed up position searches. The encoding is as follows:
+
+    Bit Position  0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15
+    -----------------------------------------------------------------------------
+    Meaning/Value AVL BP1 BP2 BP3 BN1 BN2 BB1 BB2 BR1 BR2 BQ1 BQ2 RFU RFU RFU RFU
+    
+    Bit Position  16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31
+    -----------------------------------------------------------------------------
+    Meaning/Value RFU WP1 WP2 WP3 WN1 WN2 WB1 WB2 WR1 WR2 WQ1 WQ2 RFU RFU RFU RFU
+    
+Here AVL is set to 1, if FinPosMaterial stores the information of the material count of the last position. 
+It is set to 0, if this information is not available for this index entry. RFU denotes bit positions
+reserved for future use, i.e. their meaning is undefined.
+
+For the rest of the values, the bis sequences are interpreted as an unsigned 
+integers (Big Endian, i.e. BP1, BN1, etc. is the highest bit). They encode the material count
+in the final position of the game.
+
+- [ BP1 BP2 BP3 ] : The number of black pawns
+- [ BN1 BN2 ] : The number of black knights
+- [ BB1 BB2 ] : The number of black bishops
+- [ BR1 BR2 ] : The number of black rooks
+- [ BQ1 BQ2 ] : The number of black queens
+
+- [ WP1 WP2 WP3 ] : The number of white pawns
+- [ WN1 WN2 ] : The number of white knights
+- [ WB1 WB2 ] : The number of white bishops
+- [ WR1 WR2 ] : The number of white rooks
+- [ WQ1 WQ2 ] : The number of white queens
+
+According to this encoding, there can be at most 8 pawns in the position, but each peach at most 4 times.  
+If the final position of the game contains a material count that cannot be encoded (for example there are 5 white queens
+on the board), AVL must be set to 0.
+
+**PawnMoveData**
+A 16 byte array. Stores the sequence of how pawns in the game left their initial position. This information can be
+used to speed up position searches.
+
+    [ WhiteFirstMovedPawn | BlackFirstMovedPawn | WhiteSecondMovedPawn | ... | BlackEigthMovedPawn ]
+
+where the pawns are encoded as follows:
+
+- 0x00: White Pawn on A2
+- 0x01: White Pawn on B2
+- 0x02: White Pawn on C2
+- 0x03: White Pawn on D2
+- 0x04: White Pawn on E2
+- 0x05: White Pawn on F2
+- 0x06: White Pawn on G2
+- 0x07: White Pawn on H2
+- 0x08: Black Pawn on A7
+- 0x09: Black Pawn on B7
+- 0x0A: Black Pawn on C7
+- 0x0B: Black Pawn on D7
+- 0x0C: Black Pawn on E7
+- 0x0D: Black Pawn on F7
+- 0x0E: Black Pawn on G7
+- 0x0F: Black Pawn on H7
+- 0x10: No information available
+
+If any byte is set to 0x10, any bytes right from that index position must be set to 0x10 as well.
+
+Example:
+
+Consider the game 1. g4 e5 2. f3 Qh4#. The corresponding array is [ 0x06, 0x0C, 0x05, 0x10, ... 0x10 ].
 
 ## Name File
 
